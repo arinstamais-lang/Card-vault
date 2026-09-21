@@ -66,6 +66,8 @@ test("scanner keeps rear-camera capture and a library picker for iPhone Safari",
   assert.match(scanner, /Preview of the card \$\{side\}/);
   assert.match(scanner, /Confirm and add/);
   assert.match(scanner, /detectionDraftCopy/);
+  assert.match(scanner, /shouldAutoSaveDetection/);
+  assert.match(scanner, /Saving to vault…/);
 });
 
 test("landing, vault, and scanner keep accessible names on key controls", async () => {
