@@ -2,6 +2,7 @@ import { collectionErrorMessage, listOwnedAssets, listOwnedFinancials, serialize
 import { r2KeysForAsset, zipImageName } from "../../../lib/vault-media";
 import { asFlag } from "../../../lib/vault-policy";
 import { getBucket } from "../../../lib/storage";
+import { listOwnedValuations, serializeValuation } from "../../../lib/valuation-store";
 import { createZipStore, zipTextFile } from "../../../lib/zip-store";
 import { getVaultIdentity } from "../../vault-auth";
 
@@ -13,9 +14,10 @@ export async function GET() {
   if (!identity) return Response.json({ error: "Sign in required" }, { status: 401 });
 
   try {
-    const [assetRows, financials] = await Promise.all([
+    const [assetRows, financials, valuations] = await Promise.all([
       listOwnedAssets(identity),
       listOwnedFinancials(identity),
+      listOwnedValuations(identity),
     ]);
     const assets = assetRows.map(serializeAsset);
     const financialsByKey = new Map(financials.map((row) => [row.assetKey, row]));
@@ -54,11 +56,12 @@ export async function GET() {
         purchasePricesIncluded: true,
         purchasePricesPublic: false,
         note: "This file is a private copy of your vault. Purchase prices stay in this download and are not a public share.",
-        soldPrices: "Not included. The vault does not invent sold comps or scrape live eBay sold listings.",
+        soldPrices: "Not included as a live feed. User-recorded valuation checks are in valuations.json. Asking prices are not sold comps.",
       },
       counts: {
         assets: exportedAssets.length,
         financials: financials.length,
+        valuations: valuations.length,
       },
       seedCatalog: {
         includedAsAppCatalog: identity.isLegacyOwner,
@@ -81,6 +84,14 @@ export async function GET() {
             purchaseDate: row.purchaseDate,
             updatedAt: row.updatedAt,
           })),
+          null,
+          2,
+        )}\n`,
+      ),
+      zipTextFile(
+        "valuations.json",
+        `${JSON.stringify(
+          valuations.map(serializeValuation),
           null,
           2,
         )}\n`,

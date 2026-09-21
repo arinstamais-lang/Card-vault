@@ -16,7 +16,6 @@ import {
   ExternalLink,
   Gem,
   Heart,
-  ImageIcon,
   Layers3,
   LogOut,
   Moon,
@@ -28,7 +27,6 @@ import {
   ScanLine,
   Search,
   SearchCheck,
-  ShoppingBag,
   ShieldCheck,
   Sparkles,
   Star,
@@ -78,6 +76,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster } from "@/components/ui/sonner";
 import { CardScanner, type ScannerAsset } from "./card-scanner";
+import { MarketplaceFinder, ValuationEvidencePanel, type ValuationRecord } from "./valuation-panel";
+import { parseCardFieldsFromAsset } from "@/lib/card-fields";
+import { isSeedAssetKey } from "@/lib/vault-policy";
+import {
+  catalogNotesAsEvidence,
+  historyRowAsEvidence,
+  summarizeValuation,
+  type CardValuation,
+} from "@/lib/valuation-evidence";
 import { DELETE_VAULT_CONFIRMATION } from "@/lib/vault-policy";
 
 const TROY_OUNCE_GRAMS = 31.1034768;
@@ -442,6 +449,14 @@ function formatSignedValue(value: number) {
   return `${value >= 0 ? "+" : "−"}${amount}`;
 }
 
+function cardValuationFor(asset: CollectionAsset, history: ValuationRecord[]): CardValuation {
+  const recorded = history.filter((row) => row.assetKey === asset.key).map(historyRowAsEvidence);
+  if (asset.collection === "ufc" || (asset.marketLabel && asset.rangeAud)) {
+    return summarizeValuation([...recorded, catalogNotesAsEvidence(asset)]);
+  }
+  return summarizeValuation(recorded);
+}
+
 function assetValue(asset: StoredAsset, spots: Record<string, SpotPrice | null>) {
   if (asset.category === "gold" || asset.category === "silver") {
     const spot = spots[asset.category];
@@ -453,38 +468,6 @@ function assetValue(asset: StoredAsset, spots: Record<string, SpotPrice | null>)
   return asset.manualValueAud === null
     ? null
     : asset.manualValueAud * Math.max(1, asset.quantity);
-}
-
-function ebaySearchUrl(asset: CollectionAsset) {
-  const query = [asset.name, asset.subtitle, asset.serial]
-    .filter(Boolean)
-    .join(" ")
-    .replaceAll("·", " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const parameters = new URLSearchParams({ q: query, source: "asset" });
-  return `/go/ebay?${parameters.toString()}`;
-}
-
-function MarketplaceFinder({ asset }: { asset: CollectionAsset }) {
-  return (
-    <div className="marketplace-finder">
-      <div className="marketplace-heading">
-        <span className="marketplace-icon"><ShoppingBag /></span>
-        <div><strong>Find one for sale</strong><span>Search live Australian listings for this exact item.</span></div>
-      </div>
-      <a
-        className="marketplace-button"
-        href={ebaySearchUrl(asset)}
-        target="_blank"
-        rel="sponsored noreferrer"
-        aria-label={`Find ${asset.name} for sale on eBay Australia`}
-      >
-        Search eBay Australia <ExternalLink />
-      </a>
-      <p className="affiliate-disclosure"><b>Ad</b> · This app may earn a commission from qualifying purchases, at no extra cost to you.</p>
-    </div>
-  );
 }
 
 function CategoryIcon({ category }: { category: AssetCategory }) {
@@ -1124,6 +1107,7 @@ const emptyAsset: CollectionAsset = {
 export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps) {
   const [storedAssets, setStoredAssets] = useState<StoredAsset[]>([]);
   const [financials, setFinancials] = useState<Record<string, AssetFinancial>>({});
+  const [valuations, setValuations] = useState<ValuationRecord[]>([]);
   const [filter, setFilter] = useState<AssetFilter>(hasLegacyVault ? "ufc" : "all");
   const [selectedKey, setSelectedKey] = useState(hasLegacyVault ? ufcCards[0].key : "");
   const [loadingAssets, setLoadingAssets] = useState(true);
@@ -1176,15 +1160,20 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
     let active = true;
     async function loadCollectionData() {
       try {
-        const [assetResponse, financialResponse] = await Promise.all([
+        const [assetResponse, financialResponse, valuationResponse] = await Promise.all([
           fetch("/api/assets", { cache: "no-store" }),
           fetch("/api/financials", { cache: "no-store" }),
+          fetch("/api/valuations", { cache: "no-store" }),
         ]);
         const assetPayload = (await assetResponse.json()) as { assets?: StoredAsset[] };
         const financialPayload = (await financialResponse.json()) as { financials?: AssetFinancial[] };
+        const valuationPayload = (await valuationResponse.json()) as { valuations?: ValuationRecord[] };
         if (active && assetResponse.ok && assetPayload.assets) setStoredAssets(assetPayload.assets);
         if (active && financialResponse.ok && financialPayload.financials) {
           setFinancials(Object.fromEntries(financialPayload.financials.map((item) => [item.assetKey, item])));
+        }
+        if (active && valuationResponse.ok && valuationPayload.valuations) {
+          setValuations(valuationPayload.valuations);
         }
       } catch {
         if (active) toast.error("Some collection details could not be loaded");
@@ -1300,11 +1289,10 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
     : selected.confidence === "Moderate"
       ? "moderate"
       : "early";
-  const marketBadge = selected.marketLabel === "Latest exact sale"
-    ? "SOLD"
-    : selected.marketLabel?.toLowerCase().includes("listing")
-      ? "LISTING"
-      : "GUIDE";
+  const selectedFields = parseCardFieldsFromAsset(selected);
+  const selectedHistory = valuations.filter((row) => row.assetKey === selected.key);
+  const selectedValuation = cardValuationFor(selected, valuations);
+  const canRecordValuation = !showcase && (Boolean(selected.storedId) || isSeedAssetKey(selected.key));
 
   function addStoredAsset(asset: StoredAsset) {
     setStoredAssets((current) => [asset, ...current]);
@@ -1328,6 +1316,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
       delete next[`asset-${id}`];
       return next;
     });
+    setValuations((current) => current.filter((row) => row.assetKey !== `asset-${id}`));
     setSelectedKey((current) => (current === `asset-${id}` ? "" : current));
   }
 
@@ -1375,6 +1364,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           {!showcase && <VaultDataControls onDeleted={() => {
             setStoredAssets([]);
             setFinancials({});
+            setValuations([]);
             setSelectedKey(hasLegacyVault ? ufcCards[0].key : "");
           }} />}
           {!showcase && <CardScanner onAdded={addStoredAsset} knownCardNames={collection.filter((asset) => asset.category === "card").map((asset) => asset.name)} />}
@@ -1403,15 +1393,19 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
             required
           />
           <input type="hidden" name="source" value="global" />
+          <select className="global-search-kind" name="kind" aria-label="eBay listing type" defaultValue="active">
+            <option value="active">Active listings (asking prices)</option>
+            <option value="sold">Sold listings (completed sales)</option>
+          </select>
           <Button className="global-search-button" type="submit">
             <span>Search eBay</span>
             <ExternalLink />
           </Button>
         </form>
         <div className="global-search-source" aria-hidden="true">
-          <i /> Live eBay Australia listings
+          <i /> eBay AU · asking and sold stay separate
         </div>
-        <p className="global-affiliate-disclosure"><b>Ad</b> · We may earn a commission.</p>
+        <p className="global-affiliate-disclosure"><b>Ad</b> · Tracking only if a campaign ID is configured.</p>
       </section>
 
       {showcase && <div className="showcase-notice"><Eye /> Showcase mode <span>Purchase costs and returns are hidden</span></div>}
@@ -1541,26 +1535,13 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           </div>
 
           <div className="value-card">
-            <span>{collection.length === 0 ? "PRIVATE COLLECTION" : selected.isOwnerPhoto && selected.category === "silver" ? "Estimated collector value" : "Estimated market value"}</span>
+            <span>{collection.length === 0 ? "PRIVATE COLLECTION" : selected.isOwnerPhoto && selected.category === "silver" ? "Estimated collector value" : selected.category === "card" ? "Collection figure" : "Estimated market value"}</span>
             <strong>{collection.length === 0 ? "No assets yet" : formatValue(selected.valueAud)}</strong>
-            <p>{collection.length === 0 ? "Only you can see the items saved to this account." : selected.scanStatus === "pending_research" ? selected.description || "Newly scanned card" : selected.isOwnerPhoto ? `${selected.description} · working range ${selected.rangeAud}` : selected.description || "Saved tangible asset"}</p>
+            <p>{collection.length === 0 ? "Only you can see the items saved to this account." : selected.scanStatus === "pending_research" ? selected.description || "Newly scanned card" : selected.rangeAud ? `${selected.description} · stored notes ${selected.rangeAud}` : selected.description || "Saved tangible asset"}</p>
           </div>
 
           {collection.length === 0 ? (
             <div className="empty-vault-intel"><ShieldCheck /><div><strong>Private by default</strong><span>Scans, photos and collection details are checked against your signed-in account.</span></div></div>
-          ) : selected.scanStatus === "pending_research" ? (
-            <>
-              <div className="scan-ready-card">
-                <ScanLine />
-                <div><strong>Card scan saved</strong><span>Front and back are safely stored. Add an estimated value now, or send the card to Codex for exact identification and sold-price research.</span></div>
-              </div>
-              <div className="confidence-row">
-                <div className="confidence-title"><span>Valuation status</span><strong>Research needed</strong></div>
-                <div className="confidence-track manual"><span /></div>
-                <p>The photos are your exact card; no replacement image has been used.</p>
-              </div>
-              <div className="source-note"><ShieldCheck /><p>Keep the card name, set, parallel and serial number accurate before relying on its estimate.</p></div>
-            </>
           ) : selected.isOwnerPhoto && selected.category === "silver" ? (
             <>
               <div className="metal-price-grid">
@@ -1572,10 +1553,10 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
               <div className="confidence-row">
                 <div className="confidence-title"><span>Collector estimate confidence</span><strong>{selected.confidence}</strong></div>
                 <div className={`confidence-track ${selectedConfidenceClass}`}><span /></div>
-                <p>{selected.confidenceNote}</p>
+                <p>{selected.confidenceNote} Stored notes / not live sold evidence.</p>
               </div>
               <div className="sale-block">
-                <div className="sale-label"><span>{selected.marketLabel}</span><Badge variant="outline" className="sold-badge">RETAIL</Badge></div>
+                <div className="sale-label"><span>{selected.marketLabel}</span><Badge variant="outline" className="note-badge">STORED NOTE / NOT LIVE</Badge></div>
                 <div className="sale-price"><strong>{currencyPrecise.format(selected.marketAud || 0)}</strong><span>exact issue</span></div>
                 <p>{selected.marketDate}</p>
               </div>
@@ -1587,25 +1568,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
                 {priceError ? <WifiOff /> : <Wifi />}
                 <div><strong>{priceError ? "Silver feed reconnecting" : "Live silver value active"}</strong><span>{latestSpotTime ? `Source updated ${new Date(latestSpotTime).toLocaleString("en-AU")}` : "Waiting for latest quote"}</span></div>
               </div>
-              <div className="source-note"><ShieldCheck /><p>Your sealed owner copy is shown. Collector value is estimated separately from its live silver content.</p></div>
-            </>
-          ) : selected.isOwnerPhoto ? (
-            <>
-              <div className="confidence-row">
-                <div className="confidence-title"><span>Confidence</span><strong>{selected.confidence}</strong></div>
-                <div className={`confidence-track ${selectedConfidenceClass}`}><span /></div>
-                <p>{selected.confidenceNote}</p>
-              </div>
-              <div className="sale-block">
-                <div className="sale-label"><span>{selected.marketLabel}</span><Badge variant="outline" className="sold-badge">{marketBadge}</Badge></div>
-                <div className="sale-price"><strong>US${selected.marketUsd?.toLocaleString("en-US")}</strong><span>≈ {formatValue(selected.valueAud)}</span></div>
-                <p>{selected.marketDate}</p>
-              </div>
-              <a className="market-link" href={selected.sourceUrl} target="_blank" rel="noreferrer">
-                Open pricing source <ExternalLink />
-              </a>
-              <div className="market-checked"><RefreshCw /><span>Market checked {selected.marketChecked}</span></div>
-              <div className="source-note"><ShieldCheck /><p>Your exact owner photos are used. Another serial-numbered copy is never presented as yours.</p></div>
+              <div className="source-note"><ShieldCheck /><p>Melt uses the live silver feed. The collector premium above is a stored note, not a sold-comp feed.</p></div>
             </>
           ) : selected.category === "gold" || selected.category === "silver" ? (
             <>
@@ -1624,27 +1587,31 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
             </>
           ) : (
             <>
-              <div className="confidence-row">
-                <div className="confidence-title"><span>Pricing method</span><strong>Manual estimate</strong></div>
-                <div className="confidence-track manual"><span /></div>
-                <p>Add a completed-sale source to strengthen the valuation.</p>
-              </div>
-              {selected.sourceUrl ? (
-                <a className="market-link" href={selected.sourceUrl} target="_blank" rel="noreferrer">Open market source <ExternalLink /></a>
-              ) : (
-                <div className="intel-empty"><SearchCheck /><strong>Research pending</strong><span>Send the item to Codex for exact-match images and recent sold comps.</span></div>
+              {selected.scanStatus === "pending_research" && (
+                <div className="scan-ready-card">
+                  <ScanLine />
+                  <div><strong>Card scan saved</strong><span>Front and back are stored. Search eBay for asking vs sold evidence, then record a check. Asking prices are never treated as sold.</span></div>
+                </div>
               )}
-              <div className="source-note"><ImageIcon /><p>Catalog images are labelled as references. Unique signatures, serials and condition stay tied to owner photos.</p></div>
+              <ValuationEvidencePanel
+                valuation={selectedValuation}
+                history={selectedHistory}
+                assetKey={selected.key}
+                canRecord={canRecordValuation}
+                onRecorded={(row) => setValuations((current) => [row, ...current.filter((item) => item.id !== row.id)])}
+              />
             </>
           )}
-          {collection.length > 0 && <MarketplaceFinder asset={selected} />}
+          {collection.length > 0 && (
+            <MarketplaceFinder name={selected.name} fields={selectedFields} category={selected.category} />
+          )}
         </aside>
       </section>
 
       <footer className="vault-footer">
         <div><Sparkles /> Cards, bullion and rare collectibles in one vault</div>
         <div className="vault-footer-links">
-          <p>Values are estimates, not guaranteed sale prices.</p>
+          <p>Collection figures and stored notes are estimates, not guaranteed sale prices. Asking is never sold.</p>
           <Link href="/privacy">Privacy, export &amp; deletion</Link>
         </div>
       </footer>

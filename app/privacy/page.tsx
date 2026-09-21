@@ -25,7 +25,12 @@ export default function PrivacyPage() {
 
         <section>
           <h2>eBay affiliate links</h2>
-          <p>Links marked as ads open eBay Australia search results. Affiliate tracking parameters are added only when an approved eBay campaign ID is configured; they are currently off. After you leave the vault, eBay&apos;s privacy and cookie practices apply.</p>
+          <p>Links marked as ads open eBay Australia search results. Affiliate tracking parameters are added only when both an approved eBay campaign ID and marketplace ID are configured; they stay off if those values are missing. After you leave the vault, eBay&apos;s privacy and cookie practices apply.</p>
+        </section>
+
+        <section>
+          <h2>Valuation evidence</h2>
+          <p>Active eBay listings are asking prices. Sold searches and recorded completed sales are kept separate and are never labelled as each other. Catalog UFC figures are stored research notes, not a live sold-price feed. Optional valuation checks you save stay private to your signed-in account and can be included in your private export.</p>
         </section>
 
         <section>

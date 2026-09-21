@@ -36,6 +36,8 @@ const collectionRoutes = [
   ["PUT", "/api/financials"],
   ["GET", "/api/export"],
   ["DELETE", "/api/account"],
+  ["GET", "/api/valuations"],
+  ["POST", "/api/valuations"],
   ["GET", "/api/card-image?key=scans/abc-front.jpg"],
 ];
 
@@ -78,4 +80,26 @@ test("public landing page still loads without sign-in", async () => {
   assert.match(html, /login-page/);
   assert.match(html, /Continue with ChatGPT/);
   assert.match(html, /signin-with-chatgpt/);
+});
+
+test("plain eBay search does not fake affiliate tracking when campaign IDs are missing", async () => {
+  const response = await fetchPath("/go/ebay?q=Carlos+Prates+CAV-CPS&source=asset-active");
+  assert.equal(response.status, 302);
+  const location = response.headers.get("location") || "";
+  assert.match(location, /^https:\/\/www\.ebay\.com\.au\/sch\/i\.html/);
+  assert.match(location, /_nkw=Carlos(\+|%20)Prates(\+|%20)CAV-CPS/);
+  assert.doesNotMatch(location, /campid=/);
+  assert.doesNotMatch(location, /mkevt=/);
+  assert.doesNotMatch(location, /mkcid=/);
+  assert.doesNotMatch(location, /LH_Sold=/);
+});
+
+test("sold eBay search is marked sold and still has no tracking without campaign IDs", async () => {
+  const response = await fetchPath("/go/ebay?q=CAV-CPS&kind=sold&source=asset-sold");
+  assert.equal(response.status, 302);
+  const location = response.headers.get("location") || "";
+  assert.match(location, /LH_Sold=1/);
+  assert.match(location, /LH_Complete=1/);
+  assert.doesNotMatch(location, /campid=/);
+  assert.doesNotMatch(location, /mkevt=/);
 });
