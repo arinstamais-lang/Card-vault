@@ -1,17 +1,28 @@
 import { getDb } from "../../../db";
 import { assets } from "../../../db/schema";
+import {
+  isAllowedScanImageType,
+  normalizeImageContentType,
+  normalizeManualValueAud,
+  normalizeScanName,
+  normalizeYear,
+} from "../../../lib/scan-card-input";
 import { getBucket } from "../../../lib/storage";
 import { getVaultIdentity } from "../../vault-auth";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
 function textField(form: FormData, key: string, max: number) {
   return String(form.get(key) || "").trim().slice(0, max);
 }
 
 function validImage(value: FormDataEntryValue | null): value is File {
-  return value instanceof File && value.size > 0 && value.size <= MAX_IMAGE_BYTES && ALLOWED_TYPES.has(value.type);
+  return (
+    value instanceof File &&
+    value.size > 0 &&
+    value.size <= MAX_IMAGE_BYTES &&
+    isAllowedScanImageType(value.type)
+  );
 }
 
 export async function POST(request: Request) {
@@ -21,34 +32,41 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const front = form.get("front");
   const back = form.get("back");
-  const name = textField(form, "name", 120);
+  const nameResult = normalizeScanName(textField(form, "name", 120));
+  if (!nameResult.ok) return Response.json({ error: nameResult.error }, { status: 400 });
 
-  if (!name) return Response.json({ error: "Add the fighter or card name" }, { status: 400 });
   if (!validImage(front) || !validImage(back)) {
     return Response.json({ error: "Add clear front and back photos under 8 MB each" }, { status: 400 });
   }
 
+  const yearResult = normalizeYear(textField(form, "year", 4));
+  if (!yearResult.ok) return Response.json({ error: yearResult.error }, { status: 400 });
+
+  const valueResult = normalizeManualValueAud(textField(form, "manualValueAud", 30));
+  if (!valueResult.ok) return Response.json({ error: valueResult.error }, { status: 400 });
+
   const cardId = crypto.randomUUID();
-  const frontExtension = front.type.includes("png") ? "png" : front.type.includes("webp") ? "webp" : front.type.includes("hei") ? "heic" : "jpg";
-  const backExtension = back.type.includes("png") ? "png" : back.type.includes("webp") ? "webp" : back.type.includes("hei") ? "heic" : "jpg";
+  const frontType = normalizeImageContentType(front.type);
+  const backType = normalizeImageContentType(back.type);
+  const frontExtension = frontType.includes("png") ? "png" : frontType.includes("webp") ? "webp" : frontType.includes("hei") ? "heic" : "jpg";
+  const backExtension = backType.includes("png") ? "png" : backType.includes("webp") ? "webp" : backType.includes("hei") ? "heic" : "jpg";
   const frontKey = `scans/${cardId}-front.${frontExtension}`;
   const backKey = `scans/${cardId}-back.${backExtension}`;
   const bucket = getBucket();
 
   try {
     await Promise.all([
-      bucket.put(frontKey, await front.arrayBuffer(), { httpMetadata: { contentType: front.type }, customMetadata: { contentType: front.type, ownerId: identity.user.id } }),
-      bucket.put(backKey, await back.arrayBuffer(), { httpMetadata: { contentType: back.type }, customMetadata: { contentType: back.type, ownerId: identity.user.id } }),
+      bucket.put(frontKey, await front.arrayBuffer(), {
+        httpMetadata: { contentType: frontType },
+        customMetadata: { contentType: frontType, ownerId: identity.user.id },
+      }),
+      bucket.put(backKey, await back.arrayBuffer(), {
+        httpMetadata: { contentType: backType },
+        customMetadata: { contentType: backType, ownerId: identity.user.id },
+      }),
     ]);
 
-    const valueText = textField(form, "manualValueAud", 30);
-    const manualValueAud = valueText ? Number(valueText) : null;
-    if (manualValueAud !== null && (!Number.isFinite(manualValueAud) || manualValueAud < 0)) {
-      await Promise.all([bucket.delete(frontKey), bucket.delete(backKey)]);
-      return Response.json({ error: "Check the estimated value" }, { status: 400 });
-    }
-
-    const year = textField(form, "year", 4);
+    const year = yearResult.year;
     const sport = textField(form, "sport", 80);
     const setName = textField(form, "setName", 160);
     const cardNumber = textField(form, "cardNumber", 80);
@@ -66,12 +84,12 @@ export async function POST(request: Request) {
     const [asset] = await getDb().insert(assets).values({
       ownerId: identity.user.id,
       category: "card",
-      name,
+      name: nameResult.name,
       description,
       quantity: 1,
       unit: "item",
       purity: 1,
-      manualValueAud,
+      manualValueAud: valueResult.manualValueAud,
       imageUrl: `/api/card-image?key=${encodeURIComponent(frontKey)}`,
       backImageUrl: `/api/card-image?key=${encodeURIComponent(backKey)}`,
       serial: textField(form, "serial", 80),
@@ -80,8 +98,16 @@ export async function POST(request: Request) {
     }).returning();
 
     return Response.json({ asset }, { status: 201 });
-  } catch {
+  } catch (error) {
     await Promise.allSettled([bucket.delete(frontKey), bucket.delete(backKey)]);
+    const detail = error instanceof Error ? error.message : "";
+    // Surface recognizable constraint/pattern failures without dumping stacks.
+    if (/match|pattern|constraint|UNIQUE|CHECK/i.test(detail)) {
+      return Response.json(
+        { error: "Could not save this card. Check year (blank or 4 digits) and try again." },
+        { status: 400 },
+      );
+    }
     return Response.json({ error: "The card could not be saved. Your photos were not kept." }, { status: 500 });
   }
 }
