@@ -28,7 +28,8 @@ test("REHOST.md documents deploy, secrets, drizzle 0001–0005, and Sites cutove
   assert.match(docs, /0001_lumpy_moira_mactaggert/);
   assert.match(docs, /0005_phase3_valuation_history/);
   assert.match(docs, /Sites stays live/);
-  assert.doesNotMatch(docs, /production Worker is serving users/i);
+  assert.match(docs, /does not claim a production Worker is serving users/i);
+  assert.doesNotMatch(docs, /production is live/i);
 });
 
 test("Sites vite plugin is gated off the default Workers build", async () => {
