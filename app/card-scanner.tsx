@@ -396,10 +396,26 @@ export function CardScanner({
     values.set("front", front);
     values.set("back", back);
 
+    const name = String(values.get("name") || "").trim();
+    if (!name) {
+      toast.error("Add the fighter or card name");
+      return;
+    }
+    const year = String(values.get("year") || "").trim();
+    if (year && !/^(19|20)\d{2}$/.test(year)) {
+      toast.error("Year can be blank or a 4-digit year like 2024");
+      return;
+    }
+    const valueText = String(values.get("manualValueAud") || "").trim();
+    if (valueText && !Number.isFinite(Number(valueText))) {
+      toast.error("Check the estimated value");
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await fetch("/api/scan-card", { method: "POST", body: values });
-      const payload = (await response.json()) as { asset?: ScannerAsset; error?: string };
+      const payload = (await response.json().catch(() => ({}))) as { asset?: ScannerAsset; error?: string };
       if (!response.ok || !payload.asset) throw new Error(payload.error || "Could not save card");
       onAdded(payload.asset);
       toast.success(`${payload.asset.name} scanned into the vault`);
@@ -465,7 +481,7 @@ export function CardScanner({
         )}
 
         {step === "details" && (
-          <form className="asset-form scanner-form" onSubmit={submit}>
+          <form className="asset-form scanner-form" noValidate onSubmit={submit}>
             <div className="scan-review-images">
               <div><img src={frontPreview} alt="Captured card front" /><span>Front</span></div>
               <div><img src={backPreview} alt="Captured card back" /><span>Back</span></div>
@@ -490,7 +506,7 @@ export function CardScanner({
               </div>
               <div className="field">
                 <Label htmlFor="scan-year">Year</Label>
-                <Input id="scan-year" name="year" inputMode="numeric" maxLength={4} placeholder="e.g. 2026" defaultValue={detection.year} />
+                <Input id="scan-year" name="year" inputMode="numeric" maxLength={4} placeholder="e.g. 2026" defaultValue={detection.year} autoComplete="off" />
               </div>
               <div className="field full-field">
                 <Label htmlFor="scan-set">Set or product</Label>
@@ -514,7 +530,7 @@ export function CardScanner({
               </div>
               <div className="field full-field">
                 <Label htmlFor="scan-value">Value AUD (optional)</Label>
-                <Input id="scan-value" name="manualValueAud" type="number" min="0" step="0.01" placeholder="Research later" />
+                <Input id="scan-value" name="manualValueAud" inputMode="decimal" placeholder="Research later" autoComplete="off" />
               </div>
             </div>
             <input type="hidden" name="autoDetected" value={detection.name ? "true" : "false"} />
