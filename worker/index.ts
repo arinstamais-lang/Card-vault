@@ -1,10 +1,17 @@
-/** Cloudflare Worker entry point for the vinext-starter template. */
+/** Cloudflare Worker entry point for Ari's Card Vault. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+
+import { readSessionUserFromRequest } from "../lib/session";
+import { seedPhotoAccess } from "../lib/vault-policy";
 
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  BUCKET?: unknown;
+  SESSION_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
   VAULT_LEGACY_OWNER_ID?: string;
   IMAGES: {
     input(stream: ReadableStream): {
@@ -20,20 +27,6 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
-const USER_ID_HEADER = "oai-authenticated-user-id";
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
-const SEED_PHOTO_PATH = /^\/(cards|metals)\/[^/]+\.(webp|png|jpe?g|gif)$/i;
-
-function seedPhotoAccess(pathname: string, request: Request, env: Env) {
-  if (!SEED_PHOTO_PATH.test(pathname)) return "skip" as const;
-  const userId = request.headers.get(USER_ID_HEADER);
-  const email = request.headers.get(USER_EMAIL_HEADER);
-  if (!userId || !email) return "unauthorized" as const;
-  const legacyOwnerUserId = typeof env.VAULT_LEGACY_OWNER_ID === "string" ? env.VAULT_LEGACY_OWNER_ID.trim() : "";
-  if (legacyOwnerUserId && userId !== legacyOwnerUserId) return "not_found" as const;
-  return "allow" as const;
-}
-
 function jsonError(message: string, status: number) {
   return Response.json({ error: message }, {
     status,
@@ -41,10 +34,21 @@ function jsonError(message: string, status: number) {
   });
 }
 
+async function photoAccessFor(pathname: string, request: Request, env: Env) {
+  const user = await readSessionUserFromRequest(request, env.SESSION_SECRET);
+  const legacyOwnerUserId = typeof env.VAULT_LEGACY_OWNER_ID === "string" ? env.VAULT_LEGACY_OWNER_ID.trim() : "";
+  return seedPhotoAccess({
+    pathname,
+    userId: user?.id ?? null,
+    email: user?.email ?? null,
+    legacyOwnerUserId,
+  });
+}
+
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
-    const photoAccess = seedPhotoAccess(url.pathname, request, env);
+    const photoAccess = await photoAccessFor(url.pathname, request, env);
     if (photoAccess === "unauthorized") return jsonError("Sign in required", 401);
     if (photoAccess === "not_found") return jsonError("Image not found", 404);
 

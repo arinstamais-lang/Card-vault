@@ -1,0 +1,40 @@
+# Cloudflare Workers config for Ari's Card Vault (R1 rehost).
+# Do not put API tokens or OAuth secrets in this file.
+
+name = "card-vault"
+account_id = "f82810c8a9f4145c732dfbc751ce5976"
+main = "./worker/index.ts"
+compatibility_date = "2026-02-12"
+compatibility_flags = ["nodejs_compat"]
+
+# Static files + vinext client assets. Binding name matches worker/index.ts.
+[assets]
+binding = "ASSETS"
+not_found_handling = "none"
+
+# Used by worker/index.ts for /_vinext/image (same as the Sites worker).
+[images]
+binding = "IMAGES"
+
+# App already reads env.DB via db/index.ts.
+[[d1_databases]]
+binding = "DB"
+database_name = "card-vault"
+database_id = "a85197a6-e0ba-465f-b4f6-b17d8939a5d8"
+migrations_dir = "drizzle"
+
+# App already reads env.BUCKET via lib/storage.ts (scan photos, export, delete).
+# R2 bucket `card-vault` exists on this account. Keep the binding name.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "card-vault"
+
+# Secrets (wrangler secret put) — never commit values:
+#   GITHUB_CLIENT_ID
+#   GITHUB_CLIENT_SECRET
+#   SESSION_SECRET
+# Optional:
+#   VAULT_LEGACY_OWNER_ID
+#   EBAY_CAMPAIGN_ID
+#   EBAY_MARKETPLACE_ID
+#   EBAY_TOOL_ID

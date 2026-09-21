@@ -15,7 +15,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2>Collection information</h2>
-          <p>The vault stores the collection details and images you choose to add so it can display and value your assets. Card text recognition runs on your device before you review and save the result. Saved collection records and scanned photos are linked to your signed-in account. The signed-in collection lives on the home page after ChatGPT sign-in; there is no public card grid.</p>
+          <p>The vault stores the collection details and images you choose to add so it can display and value your assets. Card text recognition runs on your device before you review and save the result. Saved collection records and scanned photos are linked to your signed-in account. The signed-in collection lives on the home page after GitHub sign-in; there is no public card grid.</p>
         </section>
 
         <section>
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2>Access, export and deletion</h2>
-          <p>Secure account access is provided through Sign in with ChatGPT; the vault does not receive your ChatGPT password. After you sign in you can download a private copy of your saved records and photos, or permanently delete that data from the vault. Purchase prices are included only in your private export and are never shown on a public page. App-shipped UFC and silver catalog photos remain part of the app and are not removed by account deletion. Collection information is retained while it is needed to provide the service.</p>
+          <p>Secure account access is provided through GitHub sign-in; the vault does not receive your GitHub password. After you sign in you can download a private copy of your saved records and photos, or permanently delete that data from the vault. Purchase prices are included only in your private export and are never shown on a public page. App-shipped UFC and silver catalog photos remain part of the app and are not removed by account deletion. Collection information is retained while it is needed to provide the service.</p>
         </section>
 
         <section>

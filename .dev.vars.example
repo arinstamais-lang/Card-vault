@@ -1,0 +1,9 @@
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+SESSION_SECRET=
+# Optional. Set to the GitHub vault user id (`github:<id>`) to attach legacy seed catalog rows.
+VAULT_LEGACY_OWNER_ID=
+# Optional eBay Partner Network tracking. Leave blank to keep plain search URLs.
+EBAY_CAMPAIGN_ID=
+EBAY_MARKETPLACE_ID=
+EBAY_TOOL_ID=

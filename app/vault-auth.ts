@@ -1,6 +1,4 @@
-import "server-only";
-
-import { getChatGPTUser } from "./chatgpt-auth";
+import { getUser } from "./auth";
 
 export const LEGACY_OWNER_ID = "legacy-owner";
 
@@ -12,7 +10,7 @@ async function runtimeSetting(name: string) {
 }
 
 export async function getVaultIdentity() {
-  const user = await getChatGPTUser();
+  const user = await getUser();
   if (!user) return null;
 
   const legacyOwnerUserId = await runtimeSetting("VAULT_LEGACY_OWNER_ID");

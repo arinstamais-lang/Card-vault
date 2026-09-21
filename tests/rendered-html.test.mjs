@@ -5,7 +5,7 @@ const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
 const { default: worker } = await import(workerUrl.href);
 
-test("renders the signed-out ChatGPT landing page", async () => {
+test("renders the signed-out GitHub landing page", async () => {
   const response = await worker.fetch(
     new Request("http://localhost/", {
       headers: { accept: "text/html" },
@@ -28,8 +28,10 @@ test("renders the signed-out ChatGPT landing page", async () => {
   );
   const html = await response.text();
   assert.match(html, /login-page/);
-  assert.match(html, /Continue with ChatGPT/);
+  assert.match(html, /Sign in with GitHub/);
   assert.match(html, /Install on iPhone/);
   assert.match(html, /Add to Home Screen/);
   assert.match(html, /Skip to sign in/);
+  assert.doesNotMatch(html, /Continue with ChatGPT/);
+  assert.doesNotMatch(html, /Sign in with Google/);
 });

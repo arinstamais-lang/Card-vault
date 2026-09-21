@@ -13,9 +13,7 @@ const NEVER_CACHE_PREFIXES = [
   "/api/",
   "/cards/",
   "/metals/",
-  "/signin-with-chatgpt",
-  "/signout-with-chatgpt",
-  "/callback",
+  "/auth/",
   "/go/",
 ];
 
