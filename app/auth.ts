@@ -17,6 +17,8 @@ async function runtimeSetting(name: string) {
 
 export async function getUser(): Promise<VaultUser | null> {
   const requestHeaders = await headers();
+  // Identity is the HMAC session cookie only. Never trust spoofable headers
+  // such as oai-authenticated-user-* or Google/CF Access identity headers.
   return readSessionUser(requestHeaders.get("cookie"), await runtimeSetting("SESSION_SECRET"));
 }
 

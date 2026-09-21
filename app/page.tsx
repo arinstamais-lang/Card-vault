@@ -36,12 +36,12 @@ export default async function Home() {
             <details className="install-iphone">
               <summary>Install on iPhone</summary>
               <ol>
-                <li>Open this site in <strong>Safari</strong> (not inside ChatGPT, Instagram or another in-app browser).</li>
+                <li>Open <strong>https://card-vault.ariscardvault.workers.dev</strong> in <strong>Safari</strong> (not an in-app browser such as Instagram or Gmail).</li>
                 <li>Tap the <strong>Share</strong> button (square with an arrow).</li>
                 <li>Scroll and tap <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</li>
-                <li>Ari&apos;s Vault opens full-screen like an app. Camera scanning works from that icon in Safari&apos;s standalone mode.</li>
+                <li>Ari&apos;s Vault opens full-screen like an app. Camera scanning works from that Home Screen icon.</li>
               </ol>
-              <p>Android Chrome may also offer <strong>Install app</strong> after the service worker loads. This is a Progressive Web App, not an App Store listing.</p>
+              <p>Android Chrome may also offer <strong>Install app</strong> after the service worker loads. This is a Progressive Web App on Cloudflare Workers, not a ChatGPT Site or App Store listing.</p>
             </details>
           </div>
 

@@ -209,3 +209,35 @@ export function detectCardDetails(frontText: string, backText: string, knownName
 
   return { name, sport, year, setName, cardNumber, parallel, serial, confidence: Math.min(confidence, 98) };
 }
+
+const DETECTION_KEYS = ["name", "sport", "year", "setName", "cardNumber", "parallel", "serial"] as const;
+
+export function filledDetectionCount(detection: CardDetection) {
+  return DETECTION_KEYS.filter((key) => Boolean(detection[key])).length;
+}
+
+export function detectionDraftCopy(detection: CardDetection) {
+  const filled = filledDetectionCount(detection);
+  if (!detection.name && filled === 0) {
+    return {
+      level: "empty" as const,
+      title: "Nothing reliable was read",
+      body: "Fields are blank on purpose. Type the athlete, set and numbers you can see, then save. We do not invent names.",
+      confidenceLabel: "",
+    };
+  }
+  if (!detection.name || detection.confidence < 50) {
+    return {
+      level: "low" as const,
+      title: "Low-confidence draft — confirm before saving",
+      body: "Only filled what the photos actually showed. Blank means unread, not guessed. Check every field.",
+      confidenceLabel: `OCR ${detection.confidence}% · not identity`,
+    };
+  }
+  return {
+    level: "ok" as const,
+    title: "Draft from photos — confirm before saving",
+    body: "Unread fields stay blank. We do not invent athlete names or set details. Correct anything that does not match the card.",
+    confidenceLabel: `OCR ${detection.confidence}% · not identity`,
+  };
+}

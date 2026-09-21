@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { detectCardDetails, type CardDetection } from "@/lib/card-detection";
+import { detectCardDetails, detectionDraftCopy, type CardDetection } from "@/lib/card-detection";
 
 export type ScannerAsset = {
   id: number;
@@ -243,15 +243,31 @@ function CaptureStep({
         </label>
       </div>
       <p className="scanner-iphone-hint">
-        On iPhone Safari, the first tap asks for Camera or Photos access. Allow it, then keep the card in the frame. If the camera does not open, use Choose from library.
+        On iPhone Safari, the first tap asks for Camera or Photos access. Allow it, then keep the card in the frame.
       </p>
-      <div className="scanner-privacy"><ShieldCheck aria-hidden="true" /> Your photos stay inside your private vault.</div>
+      <p className="scanner-iphone-hint scanner-library-hint">
+        Camera blocked or missing? Use <strong>Choose from library</strong> — it opens Photos or Files and does not need the camera.
+      </p>
+      <div className="scanner-privacy"><ShieldCheck aria-hidden="true" /> Your photos stay inside your private vault until you confirm and save.</div>
     </div>
   );
 }
 
-export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset: ScannerAsset) => void; knownCardNames?: string[] }) {
-  const [open, setOpen] = useState(false);
+export function CardScanner({
+  onAdded,
+  knownCardNames = [],
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: {
+  onAdded: (asset: ScannerAsset) => void;
+  knownCardNames?: string[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const dialogOpen = open ?? uncontrolledOpen;
   const [step, setStep] = useState<Step>("front");
   const [front, setFront] = useState<File | null>(null);
   const [back, setBack] = useState<File | null>(null);
@@ -329,13 +345,14 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
       }
     } catch {
       setDetection(EMPTY_DETECTION);
-      setAnalysisError("Automatic detection could not read these photos. You can still enter the details below.");
-      setStep("details");
+      setAnalysisProgress(0);
+      setAnalysisError("The card reader could not read these photos. Try again, or enter the details yourself.");
     }
   }
 
   function changeOpen(nextOpen: boolean) {
-    setOpen(nextOpen);
+    if (open === undefined) setUncontrolledOpen(nextOpen);
+    onOpenChange?.(nextOpen);
     if (!nextOpen) reset();
   }
 
@@ -396,30 +413,52 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
 
   const stepNumber = step === "front" ? 1 : step === "back" ? 2 : 3;
 
+  const draftCopy = detectionDraftCopy(detection);
+  const detailsWarning = Boolean(analysisError) || draftCopy.level !== "ok";
+
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger asChild>
-        <Button className="scan-card-button" aria-label="Scan card"><ScanLine aria-hidden="true" /> Scan card</Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={changeOpen}>
+      {showTrigger ? (
+        <DialogTrigger asChild>
+          <Button className="scan-card-button" aria-label="Scan card"><ScanLine aria-hidden="true" /> Scan card</Button>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="asset-dialog scanner-dialog">
         <DialogHeader>
           <div className="scanner-progress" aria-label={`Step ${stepNumber} of 3`}>
             {[1, 2, 3].map((number) => <span key={number} className={number <= stepNumber ? "is-active" : ""}>{number < stepNumber ? <Check /> : number}</span>)}
           </div>
-          <DialogTitle>{step === "front" ? "Scan the front" : step === "back" ? "Scan the back" : step === "analysis" ? "Identifying the card" : "Check the details"}</DialogTitle>
+          <DialogTitle>{step === "front" ? "Scan the front" : step === "back" ? "Scan the back" : step === "analysis" ? (analysisError ? "Could not read the card" : "Identifying the card") : "Confirm the draft"}</DialogTitle>
           <DialogDescription>
-            {step === "analysis" ? "Reading both sides for names, sets, card numbers and parallels." : step === "details" ? "We filled what we could find. Check it before adding the card." : "Use a plain background and soft light for the cleanest 3D card."}
+            {step === "analysis"
+              ? (analysisError ? "Nothing was saved. You can retry or type the details yourself." : "Reading both sides. Unread fields stay blank — we do not invent athlete names.")
+              : step === "details"
+                ? "This is a draft. Confirm or correct every field before it is saved to your vault."
+                : "Use a plain background and soft light. If the camera is blocked, choose a photo from your library."}
           </DialogDescription>
         </DialogHeader>
 
         {step === "front" && <CaptureStep side="front" file={front} preview={frontPreview} onChoose={choose("front")} />}
         {step === "back" && <CaptureStep side="back" file={back} preview={backPreview} onChoose={choose("back")} />}
 
-        {step === "analysis" && (
-          <div className="scanner-analysis" aria-live="polite">
+        {step === "analysis" && analysisError && (
+          <div className="scanner-analysis is-error" role="alert">
+            <div className="scanner-analysis-icon"><ScanLine /></div>
+            <strong>{analysisError}</strong>
+            <span>Clearer, glare-free photos help. Drafts are never saved until you confirm the details.</span>
+            <DialogFooter className="scanner-footer">
+              <Button type="button" variant="ghost" onClick={() => setStep("back")}><ArrowLeft /> Back to photos</Button>
+              <Button type="button" variant="outline" onClick={() => { setAnalysisError(""); setStep("details"); }}>Enter details myself</Button>
+              <Button type="button" className="save-asset-button" onClick={() => void analyseCard()}><ScanLine /> Try again</Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === "analysis" && !analysisError && (
+          <div className="scanner-analysis" aria-live="polite" aria-busy="true" role="status">
             <div className="scanner-analysis-icon"><ScanLine /><span /></div>
             <strong>{analysisLabel}</strong>
-            <span>The first scan can take a little longer while the card reader loads.</span>
+            <span>The first scan can take a little longer while the card reader loads. Fields we cannot read stay empty.</span>
             <Progress className="scanner-analysis-progress" value={analysisProgress} />
             <small>{analysisProgress}%</small>
           </div>
@@ -431,14 +470,15 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
               <div><img src={frontPreview} alt="Captured card front" /><span>Front</span></div>
               <div><img src={backPreview} alt="Captured card back" /><span>Back</span></div>
             </div>
-            <div className={`scanner-detected ${analysisError ? "is-warning" : ""}`}>
+            <div className={`scanner-detected ${detailsWarning ? "is-warning" : ""}`}>
               <Sparkles />
               <div>
-                <strong>{analysisError ? "Check the card details" : "Card details detected"}</strong>
-                <span>{analysisError || "Front and back matched. Correct anything that does not look right."}</span>
+                <strong>{analysisError || draftCopy.title}</strong>
+                <span>{analysisError ? "Correct or complete every field. Blank means unread, not guessed." : draftCopy.body}</span>
               </div>
-              {!analysisError && <b>{detection.confidence}% match</b>}
+              {draftCopy.confidenceLabel ? <b>{draftCopy.confidenceLabel}</b> : null}
             </div>
+            <p className="scanner-confirm-note">Nothing is stored until you tap Confirm and add.</p>
             <div className="form-grid">
               <div className="field full-field">
                 <Label htmlFor="scan-name">Fighter or card name</Label>
@@ -483,7 +523,7 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
               <Button type="button" variant="ghost" onClick={() => void analyseCard()}><ScanLine /> Scan again</Button>
               <Button type="submit" className="save-asset-button" disabled={saving}>
                 {saving ? <RefreshCw className="spin" /> : <Check />}
-                {saving ? "Saving photos…" : "Add to vault"}
+                {saving ? "Saving photos…" : "Confirm and add"}
               </Button>
             </DialogFooter>
           </form>

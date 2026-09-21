@@ -1,18 +1,20 @@
 # Rehost Ari’s Card Vault on Cloudflare Workers
 
-Status: **R1 platform strip** (this PR). ChatGPT Sites stays live until a later cutover. This document does not claim a production Worker is serving users.
+Status: **Workers is the product host.** Live URL: https://card-vault.ariscardvault.workers.dev  
+Auth is GitHub OAuth (not Google, not ChatGPT) behind `getVaultIdentity()`. PRs in this repo still **do not auto-deploy** — HQ runs `wrangler deploy`. See [`CUTOVER.md`](./CUTOVER.md) for when to retire ChatGPT Sites.
 
-The app is still vinext + Cloudflare D1/R2. Auth is now a portable GitHub OAuth adapter behind the same `getVaultIdentity()` ownership model.
+The app is vinext + Cloudflare D1/R2.
 
 ## Why
 
-ChatGPT Sites injects `oai-authenticated-user-*` headers and owns `/signin-with-chatgpt`. That only works on `*.chatgpt.site`. A public Worker must not trust those headers (they can be spoofed). GitHub OAuth + an HMAC session cookie replaces SIWC.
+ChatGPT Sites injects `oai-authenticated-user-*` headers and owns `/signin-with-chatgpt`. That only works on `*.chatgpt.site`. A public Worker must not trust those headers (they can be spoofed). GitHub OAuth + an HMAC session cookie replaces SIWC. There is no Google auth.
 
 ## One-time Cloudflare setup
 
 Account ID (already provisioned): `f82810c8a9f4145c732dfbc751ce5976`
 
 Worker name: `card-vault`  
+`workers_dev = true` in `wrangler.toml`  
 Workers hostname: `https://card-vault.ariscardvault.workers.dev`  
 D1 database name: `card-vault` (binding `DB`, database_id `a85197a6-e0ba-465f-b4f6-b17d8939a5d8`)  
 R2 bucket name: `card-vault` (binding `BUCKET`)
@@ -70,7 +72,7 @@ npx wrangler deploy
 
 `wrangler.toml` is the source of truth. `vite.config.ts` lets `@cloudflare/vite-plugin` load it. The ChatGPT Sites vite plugin only runs when `SITES_BUILD=1`.
 
-This PR does not deploy. A successful `wrangler deploy` (after GitHub secrets and drizzle 0000–0005) yields `https://card-vault.ariscardvault.workers.dev`. That is R1’s success bar, not a cutover.
+A successful `wrangler deploy` (after GitHub secrets and drizzle 0000–0005) serves `https://card-vault.ariscardvault.workers.dev`. Later product PRs still need HQ to deploy.
 
 ## D1 migrations (drizzle 0000–0005)
 
@@ -100,16 +102,13 @@ Use `--local` instead of `--remote` for Miniflare. Do not skip `0000` on an empt
 - UI: `signInPath` / `signOutPath` / `requireUser` in `app/auth.ts`
 - Vault: `getVaultIdentity()` in `app/vault-auth.ts` still returns `{ user, isLegacyOwner, ownerIds }`
 - GitHub numeric user id is stored as `github:<id>` so it cannot collide with old ChatGPT ids and stays stable if the login is renamed
-- Session cookie `vault_session` is HttpOnly, SameSite=Lax, HMAC-SHA256, 30 days
+- Session cookie `vault_session` is HttpOnly, SameSite=Lax, HMAC-SHA256, 30 days, Secure on non-localhost HTTPS hosts
 - Collection APIs, scanner, export/delete still 401 without a valid session
 - Honesty rules are unchanged: never invent card fields or sold prices
 
-## Cutover notes (R3 later)
+## Cutover
 
-- **Sites stays live.** https://aris-card-vault.aristama27.chatgpt.site/ is not deleted by this PR.
-- Point people at https://card-vault.ariscardvault.workers.dev only after sign-in → empty private vault → scan → save → export works (R2).
-- Optional: one-time export from Sites if Ari has data to keep. GitHub ids will not match ChatGPT ids; map `VAULT_LEGACY_OWNER_ID` if the seed catalog should follow Ari.
-- Soft-deprecate Sites after a week on the Worker. Out of scope here: custom domain, TestFlight, dedicated bot, deleting Sites.
+See [`CUTOVER.md`](./CUTOVER.md): workers.dev is primary; retire ChatGPT Sites after GitHub sign-in, scan/save/export, and Home Screen icons are on the Worker.
 
 ## Optional Sites rebuild
 
@@ -121,7 +120,7 @@ SITES_BUILD=1 npm run build
 
 That copies `.openai/hosting.json` and `drizzle/` into `dist/.openai/`. GitHub auth still applies; SIWC headers are no longer trusted.
 
-## Verify (no production claim)
+## Verify (no production claim from a PR)
 
 ```bash
 npm test
