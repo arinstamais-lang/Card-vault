@@ -30,18 +30,12 @@ export default async function Home() {
             <h1>A private vault for the things worth collecting.</h1>
             <p className="login-lead">Scan cards, track precious metals and keep rare assets organised in a clean, interactive collection.</p>
             <div className="login-features">
-              <div><ScanLine aria-hidden="true" /><span><strong>Smart card scanner</strong>Identify details from front and back photos.</span></div>
+              <div><ScanLine aria-hidden="true" /><span><strong>Scan card</strong>Front and back photos. Unread fields stay blank.</span></div>
               <div><LockKeyhole aria-hidden="true" /><span><strong>Private by default</strong>Your collection and photos stay tied to your account.</span></div>
             </div>
             <details className="install-iphone">
               <summary>Install on iPhone</summary>
-              <ol>
-                <li>Open <strong>https://card-vault.ariscardvault.workers.dev</strong> in <strong>Safari</strong> (not an in-app browser such as Instagram or Gmail).</li>
-                <li>Tap the <strong>Share</strong> button (square with an arrow).</li>
-                <li>Scroll and tap <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</li>
-                <li>Ari&apos;s Vault opens full-screen like an app. Camera scanning works from that Home Screen icon.</li>
-              </ol>
-              <p>Android Chrome may also offer <strong>Install app</strong> after the service worker loads. This is a Progressive Web App on Cloudflare Workers, not a ChatGPT Site or App Store listing.</p>
+              <p>In Safari, open <strong>https://card-vault.ariscardvault.workers.dev</strong>, tap Share, then <strong>Add to Home Screen</strong>.</p>
             </details>
           </div>
 

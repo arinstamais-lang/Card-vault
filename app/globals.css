@@ -741,12 +741,14 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 }
 .scanner-camera-button:hover { background: rgba(101, 247, 213, 0.12); }
 .scanner-library-button {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #d5e4dd;
-  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(214, 183, 106, 0.78);
+  color: #ffe7b0;
+  background: rgba(214, 183, 106, 0.16);
 }
-.scanner-library-button:hover { background: rgba(255, 255, 255, 0.09); }
-.scanner-camera-button svg { width: 18px; }
+.scanner-library-button:hover { background: rgba(214, 183, 106, 0.26); }
+.scanner-library-button span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
+.scanner-library-button small { font-size: 12px; font-weight: 750; letter-spacing: 0.01em; }
+.scanner-camera-button svg, .scanner-library-button svg { width: 18px; flex: 0 0 auto; }
 .scanner-camera-button input, .scanner-library-button input {
   position: absolute;
   inset: 0;
@@ -770,7 +772,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
   line-height: 1.45;
   text-align: center;
 }
-.scanner-library-hint { margin-top: 6px; }
+.scanner-library-hint { margin-top: 8px; color: #ffe7b0; font-weight: 750; }
 .scanner-confirm-note {
   margin: 0 0 14px;
   color: #8b9691;
@@ -931,11 +933,12 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 :root[data-theme="light"] .scanner-detected.is-warning { border-color: rgba(173, 126, 19, 0.2); background: #fff9e9; }
 :root[data-theme="light"] .empty-vault-viewer > div, :root[data-theme="light"] .empty-vault-intel { border-color: rgba(15, 159, 139, 0.18); color: #087565; background: #edf9f6; }
 :root[data-theme="light"] .empty-vault-viewer p, :root[data-theme="light"] .empty-vault-viewer span, :root[data-theme="light"] .empty-vault-intel span, :root[data-theme="light"] .empty-vault-tips { color: #4d5b70; }
-:root[data-theme="light"] .scanner-library-button { border-color: rgba(22, 32, 51, 0.14); color: #243247; background: #f1f5f9; }
-:root[data-theme="light"] .scanner-library-button:hover { background: #fff; }
+:root[data-theme="light"] .scanner-library-button { border-color: #9a7209; color: #5c4300; background: #fff6df; }
+:root[data-theme="light"] .scanner-library-button:hover { background: #ffefc4; }
 :root[data-theme="light"] .scanner-camera-button { border-color: rgba(15, 159, 139, 0.32); color: #065f53; background: #e7f8f4; }
 :root[data-theme="light"] .scanner-camera-button:hover { background: #d5f3ec; }
 :root[data-theme="light"] .scanner-iphone-hint, :root[data-theme="light"] .scanner-privacy, :root[data-theme="light"] .scanner-confirm-note { color: #3e4c63; }
+:root[data-theme="light"] .scanner-library-hint { color: #6b4e00; }
 
 @media (max-width: 1200px) {
   .vault-workspace { grid-template-columns: minmax(270px, 0.75fr) minmax(500px, 1.55fr); }

@@ -243,15 +243,15 @@ export function detectionDraftCopy(detection: CardDetection) {
   if (!detection.name || detection.confidence < 50) {
     return {
       level: "low" as const,
-      title: "Low-confidence draft — confirm before saving",
-      body: "Only filled what the photos actually showed. Blank means unread, not guessed. Check every field.",
-      confidenceLabel: `OCR ${detection.confidence}% · not identity`,
+      title: "Check this read — confirm before saving",
+      body: "Only filled what the photos showed. Blank means unread, not guessed. Check every field.",
+      confidenceLabel: `Read ${detection.confidence}% · check before saving`,
     };
   }
   return {
     level: "ok" as const,
-    title: "Draft from photos — confirm before saving",
-    body: "Unread fields stay blank. We do not invent athlete names or set details. Correct anything that does not match the card.",
-    confidenceLabel: `OCR ${detection.confidence}% · not identity`,
+    title: "Check the card — confirm before saving",
+    body: "Unread fields stay blank. We do not invent names or prices. Fix anything that does not match the card.",
+    confidenceLabel: `Read ${detection.confidence}% · check before saving`,
   };
 }
