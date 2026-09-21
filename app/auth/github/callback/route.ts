@@ -1,15 +1,15 @@
 import { env } from "cloudflare:workers";
 
 import {
-  exchangeGoogleCode,
-  fetchGoogleProfile,
+  exchangeGitHubCode,
+  fetchGitHubProfile,
   htmlError,
   missingAuthSecrets,
   trimSetting,
-} from "../../../../lib/google-oauth";
+} from "../../../../lib/github-oauth";
 import {
   clearCookie,
-  googleOwnerId,
+  githubOwnerId,
   OAUTH_COOKIE,
   readOAuthPending,
   requestIsHttps,
@@ -24,11 +24,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const runtime = env as unknown as Record<string, string | undefined>;
   const missing = missingAuthSecrets(runtime);
-  if (missing.length) return htmlError(503, "Google sign-in is not configured", "", missing);
+  if (missing.length) return htmlError(503, "GitHub sign-in is not configured", "", missing);
 
   const requestUrl = new URL(request.url);
   if (requestUrl.searchParams.get("error")) {
-    return htmlError(400, "Google sign-in was cancelled", "No vault session was created.");
+    return htmlError(400, "GitHub sign-in was cancelled", "No vault session was created.");
   }
 
   const code = requestUrl.searchParams.get("code") || "";
@@ -41,32 +41,31 @@ export async function GET(request: Request) {
   if (!code || !state || !pending || pending.nonce !== state) {
     return htmlError(
       400,
-      "Google sign-in could not be completed",
+      "GitHub sign-in could not be completed",
       "The sign-in request was missing, expired, or did not match this browser. Try again from the landing page.",
     );
   }
 
-  const token = await exchangeGoogleCode({
+  const token = await exchangeGitHubCode({
     code,
     origin: requestUrl.origin,
-    clientId: trimSetting(runtime.GOOGLE_CLIENT_ID),
-    clientSecret: trimSetting(runtime.GOOGLE_CLIENT_SECRET),
-    verifier: pending.verifier,
+    clientId: trimSetting(runtime.GITHUB_CLIENT_ID),
+    clientSecret: trimSetting(runtime.GITHUB_CLIENT_SECRET),
   });
   if (!token.ok) {
-    return htmlError(502, "Google sign-in failed", "The authorization code could not be exchanged. Try again.");
+    return htmlError(502, "GitHub sign-in failed", "The authorization code could not be exchanged. Try again.");
   }
 
-  const profile = await fetchGoogleProfile(token.accessToken);
+  const profile = await fetchGitHubProfile(token.accessToken);
   if (!profile.ok) {
-    return htmlError(403, "Google sign-in failed", profile.error);
+    return htmlError(403, "GitHub sign-in failed", profile.error);
   }
 
   const session = await signSession(
     {
-      id: googleOwnerId(profile.profile.sub),
+      id: githubOwnerId(profile.profile.id),
       email: profile.profile.email,
-      displayName: profile.profile.name || profile.profile.email,
+      displayName: profile.profile.name || profile.profile.login,
       fullName: profile.profile.name,
     },
     secret,

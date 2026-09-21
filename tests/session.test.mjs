@@ -18,11 +18,11 @@ after(async () => {
 });
 
 const session = await vite.ssrLoadModule("/lib/session.ts");
-const oauth = await vite.ssrLoadModule("/lib/google-oauth.ts");
+const oauth = await vite.ssrLoadModule("/lib/github-oauth.ts");
 
 const secret = "test-session-secret-at-least-32-chars!!";
 const user = {
-  id: "google:123",
+  id: "github:123",
   email: "ari@example.com",
   displayName: "Ari",
   fullName: "Ari Example",
@@ -58,42 +58,54 @@ test("expired and empty secrets never mint a user", async () => {
   assert.equal(await session.verifyPayload(expired, secret), null);
 });
 
-test("Google owner ids are namespaced", () => {
-  assert.equal(session.googleOwnerId("abc"), "google:abc");
+test("GitHub owner ids are namespaced", () => {
+  assert.equal(session.githubOwnerId("123"), "github:123");
+  assert.equal(session.githubOwnerId(123), "github:123");
 });
 
-test("missing Google secrets are listed without inventing credentials", () => {
+test("missing GitHub secrets are listed without inventing credentials", () => {
   assert.deepEqual(oauth.missingAuthSecrets({}), [
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
     "SESSION_SECRET",
   ]);
   assert.deepEqual(
     oauth.missingAuthSecrets({
-      GOOGLE_CLIENT_ID: "id.apps.googleusercontent.com",
-      GOOGLE_CLIENT_SECRET: "secret",
+      GITHUB_CLIENT_ID: "Iv1.example",
+      GITHUB_CLIENT_SECRET: "secret",
       SESSION_SECRET: "session",
     }),
     [],
   );
 });
 
-test("authorization URL is OpenID with PKCE and the Workers callback", async () => {
-  const verifier = session.randomBase64Url(32);
-  const challenge = await session.pkceChallenge(verifier);
+test("authorization URL uses GitHub OAuth and the Workers callback", () => {
   const url = new URL(
-    oauth.googleAuthorizationUrl({
-      clientId: "client.apps.googleusercontent.com",
-      origin: "https://card-vault.example.workers.dev",
+    oauth.githubAuthorizationUrl({
+      clientId: "Iv1.example",
+      origin: "https://card-vault.ariscardvault.workers.dev",
       state: "nonce",
-      challenge,
-      nonce: "nonce",
     }),
   );
-  assert.equal(url.origin, "https://accounts.google.com");
-  assert.equal(url.searchParams.get("client_id"), "client.apps.googleusercontent.com");
-  assert.equal(url.searchParams.get("redirect_uri"), "https://card-vault.example.workers.dev/auth/google/callback");
-  assert.equal(url.searchParams.get("scope"), "openid email profile");
-  assert.equal(url.searchParams.get("code_challenge_method"), "S256");
-  assert.equal(url.searchParams.get("code_challenge"), challenge);
+  assert.equal(url.origin, "https://github.com");
+  assert.equal(url.pathname, "/login/oauth/authorize");
+  assert.equal(url.searchParams.get("client_id"), "Iv1.example");
+  assert.equal(
+    url.searchParams.get("redirect_uri"),
+    "https://card-vault.ariscardvault.workers.dev/auth/github/callback",
+  );
+  assert.equal(url.searchParams.get("scope"), "read:user user:email");
+  assert.equal(url.searchParams.get("state"), "nonce");
+});
+
+test("GitHub email picker prefers verified primary then noreply fallback", () => {
+  assert.equal(oauth.pickGitHubEmail("public@example.com", [], "1+ari@users.noreply.github.com"), "public@example.com");
+  assert.equal(
+    oauth.pickGitHubEmail(null, [
+      { email: "old@example.com", primary: false, verified: true },
+      { email: "main@example.com", primary: true, verified: true },
+    ], "1+ari@users.noreply.github.com"),
+    "main@example.com",
+  );
+  assert.equal(oauth.pickGitHubEmail("", [], "1+ari@users.noreply.github.com"), "1+ari@users.noreply.github.com");
 });

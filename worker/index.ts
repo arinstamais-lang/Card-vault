@@ -10,8 +10,8 @@ interface Env {
   DB: D1Database;
   BUCKET?: unknown;
   SESSION_SECRET?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
   VAULT_LEGACY_OWNER_ID?: string;
   IMAGES: {
     input(stream: ReadableStream): {

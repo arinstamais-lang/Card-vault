@@ -2,7 +2,7 @@
 
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with Cloudflare D1, R2, and Drizzle support.
 
-**Rehost (Cloudflare Workers):** see [`REHOST.md`](./REHOST.md) for `wrangler.toml`, Google sign-in secrets, D1 migrations, and cutover notes. ChatGPT Sites remains live until that cutover; this tree no longer trusts Sites identity headers.
+**Rehost (Cloudflare Workers):** see [`REHOST.md`](./REHOST.md) for `wrangler.toml`, GitHub sign-in secrets, D1 migrations, and cutover notes. ChatGPT Sites remains live until that cutover; this tree no longer trusts Sites identity headers.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 ## Included Shape
 
 - edit site code under `app/`
-- `app/auth.ts` provides Google OpenID sign-in helpers (session cookie)
+- `app/auth.ts` provides GitHub OAuth sign-in helpers (session cookie)
 - `app/vault-auth.ts` maps the signed-in user onto per-vault `ownerIds`
 - `wrangler.toml` declares D1 (`DB` → `card-vault`) and R2 (`BUCKET` → `card-vault`)
 - `vite.config.ts` uses that Wrangler config for local development
@@ -32,15 +32,15 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 - `examples/d1/` contains an optional D1 example surface
 - `drizzle.config.ts` supports local migration generation when needed
 
-## Google Sign-In
+## GitHub Sign-In
 
-Identity is a signed `vault_session` cookie from Google OpenID. Helpers live in `app/auth.ts`:
+Identity is a signed `vault_session` cookie from GitHub OAuth. Helpers live in `app/auth.ts`:
 
 - `getUser()` / `requireUser(returnTo)` for server-rendered pages
 - `<a href={signInPath(returnTo)} target="_top">` to start sign-in (top-level navigation)
 - `signOutPath(returnTo)` for the header sign-out link
 
-Do not trust `oai-authenticated-user-*` headers on the Worker. Until `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `SESSION_SECRET` are set, `/auth/google` returns 503 and does not create a session. Setup is in [`REHOST.md`](./REHOST.md).
+Do not trust `oai-authenticated-user-*` headers on the Worker. Until `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and `SESSION_SECRET` are set, `/auth/github` returns 503 and does not create a session. Setup is in [`REHOST.md`](./REHOST.md).
 
 ## Diagnostic Commands
 

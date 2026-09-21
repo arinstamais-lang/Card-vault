@@ -69,7 +69,7 @@ test("landing, vault, and scanner keep accessible names on key controls", async 
   assert.match(landing, /Skip to sign in/);
   assert.match(landing, /Install on iPhone/);
   assert.match(landing, /Add to Home Screen/);
-  assert.match(landing, /Sign in with Google/);
+  assert.match(landing, /Sign in with GitHub/);
   assert.match(landing, /aria-hidden="true"/);
 
   const vault = await read("app/card-vault.tsx");

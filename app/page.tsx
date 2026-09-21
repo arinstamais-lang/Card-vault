@@ -51,9 +51,9 @@ export default async function Home() {
             <h2>Collector Vault</h2>
             <span>Sign in to open your private collection or start a new one.</span>
             <a className="login-button" href={signInPath("/")} target="_top">
-              Sign in with Google
+              Sign in with GitHub
             </a>
-            <small><LockKeyhole aria-hidden="true" /> Secure sign-in. We never receive your Google password.</small>
+            <small><LockKeyhole aria-hidden="true" /> Secure sign-in. We never receive your GitHub password.</small>
           </aside>
         </section>
       </main>

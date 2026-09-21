@@ -24,15 +24,14 @@ database_id = "a85197a6-e0ba-465f-b4f6-b17d8939a5d8"
 migrations_dir = "drizzle"
 
 # App already reads env.BUCKET via lib/storage.ts (scan photos, export, delete).
-# Bucket is not created yet: enable R2 on this account in the dashboard, then
-# `npx wrangler r2 bucket create card-vault`. Keep the binding name.
+# R2 bucket `card-vault` exists on this account. Keep the binding name.
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "card-vault"
 
 # Secrets (wrangler secret put) — never commit values:
-#   GOOGLE_CLIENT_ID
-#   GOOGLE_CLIENT_SECRET
+#   GITHUB_CLIENT_ID
+#   GITHUB_CLIENT_SECRET
 #   SESSION_SECRET
 # Optional:
 #   VAULT_LEGACY_OWNER_ID

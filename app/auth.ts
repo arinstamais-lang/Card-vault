@@ -3,7 +3,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AUTH_RESERVED_PATHS, AUTH_SIGN_IN_PATH, AUTH_SIGN_OUT_PATH } from "../lib/google-oauth";
+import { AUTH_RESERVED_PATHS, AUTH_SIGN_IN_PATH, AUTH_SIGN_OUT_PATH } from "../lib/github-oauth";
 import { readSessionUser, safeRelativeReturnPath, type VaultUser } from "../lib/session";
 
 export type { VaultUser };

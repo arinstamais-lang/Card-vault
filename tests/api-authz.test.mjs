@@ -112,20 +112,21 @@ test("public landing page still loads without sign-in", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /login-page/);
-  assert.match(html, /Sign in with Google/);
-  assert.match(html, /\/auth\/google/);
+  assert.match(html, /Sign in with GitHub/);
+  assert.match(html, /\/auth\/github/);
   assert.doesNotMatch(html, /Continue with ChatGPT/);
+  assert.doesNotMatch(html, /Sign in with Google/);
 });
 
-test("Google sign-in fails clearly when Worker secrets are missing", async () => {
-  delete workerEnv.GOOGLE_CLIENT_ID;
-  delete workerEnv.GOOGLE_CLIENT_SECRET;
+test("GitHub sign-in fails clearly when Worker secrets are missing", async () => {
+  delete workerEnv.GITHUB_CLIENT_ID;
+  delete workerEnv.GITHUB_CLIENT_SECRET;
   delete workerEnv.SESSION_SECRET;
-  const response = await fetchPath("/auth/google", { headers: { accept: "text/html" } });
+  const response = await fetchPath("/auth/github", { headers: { accept: "text/html" } });
   assert.equal(response.status, 503);
   const html = await response.text();
-  assert.match(html, /Google sign-in is not configured/);
-  assert.match(html, /GOOGLE_CLIENT_ID/);
+  assert.match(html, /GitHub sign-in is not configured/);
+  assert.match(html, /GITHUB_CLIENT_ID/);
   assert.match(html, /SESSION_SECRET/);
   assert.doesNotMatch(html, /login-page/);
 });
@@ -160,23 +161,23 @@ test("service worker responses advertise the root scope", async () => {
   assert.match(response.headers.get("cache-control") ?? "", /no-cache/i);
 });
 
-test("Google sign-in redirects to Google when Worker secrets exist", async () => {
+test("GitHub sign-in redirects to GitHub when Worker secrets exist", async () => {
   Object.assign(workerEnv, {
-    GOOGLE_CLIENT_ID: "client.apps.googleusercontent.com",
-    GOOGLE_CLIENT_SECRET: "google-secret",
+    GITHUB_CLIENT_ID: "Iv1.testclientid",
+    GITHUB_CLIENT_SECRET: "github-secret",
     SESSION_SECRET: "test-session-secret-at-least-32-chars!!",
   });
   try {
-    const response = await fetchPath("/auth/google?return_to=/");
+    const response = await fetchPath("/auth/github?return_to=/");
     assert.equal(response.status, 302);
     const location = response.headers.get("location") || "";
-    assert.match(location, /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth/);
-    assert.match(location, /client_id=client\.apps\.googleusercontent\.com/);
-    assert.match(location, /redirect_uri=http%3A%2F%2Flocalhost%2Fauth%2Fgoogle%2Fcallback/);
+    assert.match(location, /^https:\/\/github\.com\/login\/oauth\/authorize/);
+    assert.match(location, /client_id=Iv1\.testclientid/);
+    assert.match(location, /redirect_uri=http%3A%2F%2Flocalhost%2Fauth%2Fgithub%2Fcallback/);
     assert.match(response.headers.get("set-cookie") || "", /vault_oauth=/);
   } finally {
-    delete workerEnv.GOOGLE_CLIENT_ID;
-    delete workerEnv.GOOGLE_CLIENT_SECRET;
+    delete workerEnv.GITHUB_CLIENT_ID;
+    delete workerEnv.GITHUB_CLIENT_SECRET;
     delete workerEnv.SESSION_SECRET;
   }
 });

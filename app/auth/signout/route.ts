@@ -1,4 +1,4 @@
-import { AUTH_RESERVED_PATHS } from "../../../lib/google-oauth";
+import { AUTH_RESERVED_PATHS } from "../../../lib/github-oauth";
 import { clearCookie, OAUTH_COOKIE, requestIsHttps, safeRelativeReturnPath, SESSION_COOKIE } from "../../../lib/session";
 
 export const dynamic = "force-dynamic";

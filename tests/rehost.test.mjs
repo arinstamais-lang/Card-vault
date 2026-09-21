@@ -17,6 +17,7 @@ test("wrangler.toml names the Worker and binds D1 plus existing R2", async () =>
   assert.match(toml, /binding\s*=\s*"BUCKET"/);
   assert.match(toml, /bucket_name\s*=\s*"card-vault"/);
   assert.doesNotMatch(toml, /GOOGLE_CLIENT_SECRET\s*=/);
+  assert.doesNotMatch(toml, /GITHUB_CLIENT_SECRET\s*=\s*"[^"]+"/);
   assert.doesNotMatch(toml, /SESSION_SECRET\s*=\s*"[^"]+"/);
   assert.doesNotMatch(toml, /api[_-]?token/i);
 });
@@ -24,14 +25,17 @@ test("wrangler.toml names the Worker and binds D1 plus existing R2", async () =>
 test("REHOST.md documents deploy, secrets, drizzle 0001–0005, and Sites cutover", async () => {
   const docs = await readFile(path.join(root, "REHOST.md"), "utf8");
   assert.match(docs, /wrangler deploy/);
-  assert.match(docs, /GOOGLE_CLIENT_ID/);
-  assert.match(docs, /GOOGLE_CLIENT_SECRET/);
+  assert.match(docs, /GITHUB_CLIENT_ID/);
+  assert.match(docs, /GITHUB_CLIENT_SECRET/);
   assert.match(docs, /SESSION_SECRET/);
   assert.match(docs, /0001_lumpy_moira_mactaggert/);
   assert.match(docs, /0005_phase3_valuation_history/);
   assert.match(docs, /Sites stays live/);
-  assert.match(docs, /Enable R2 once in the Cloudflare dashboard/);
-  assert.match(docs, /a85197a6-e0ba-465f-b4f6-b17d8939a5d8/);
+  assert.match(docs, /card-vault\.ariscardvault\.workers\.dev/);
+  assert.match(docs, /\/auth\/github\/callback/);
+  assert.match(docs, /R2 bucket `card-vault` exist/);
+  assert.doesNotMatch(docs, /GOOGLE_CLIENT_/);
+  assert.doesNotMatch(docs, /Enable R2 once in the Cloudflare dashboard/);
   assert.match(docs, /does not claim a production Worker is serving users/i);
   assert.doesNotMatch(docs, /production is live/i);
 });

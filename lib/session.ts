@@ -33,8 +33,8 @@ export type SignedPayload = SessionPayload | OAuthPendingPayload;
 
 const encoder = new TextEncoder();
 
-export function googleOwnerId(sub: string) {
-  return `google:${sub}`;
+export function githubOwnerId(id: string | number) {
+  return `github:${id}`;
 }
 
 export function safeRelativeReturnPath(value: string, reservedPathnames: readonly string[]) {
