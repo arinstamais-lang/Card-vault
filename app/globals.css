@@ -913,6 +913,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 :root[data-theme="light"] .empty-vault-viewer p, :root[data-theme="light"] .empty-vault-viewer span, :root[data-theme="light"] .empty-vault-intel span, :root[data-theme="light"] .empty-vault-tips { color: #4d5b70; }
 :root[data-theme="light"] .scanner-library-button { border-color: rgba(22, 32, 51, 0.14); color: #243247; background: #f1f5f9; }
 :root[data-theme="light"] .scanner-library-button:hover { background: #fff; }
+:root[data-theme="light"] .scanner-camera-button { border-color: rgba(15, 159, 139, 0.32); color: #065f53; background: #e7f8f4; }
+:root[data-theme="light"] .scanner-camera-button:hover { background: #d5f3ec; }
 :root[data-theme="light"] .scanner-iphone-hint, :root[data-theme="light"] .scanner-privacy, :root[data-theme="light"] .scanner-confirm-note { color: #3e4c63; }
 
 @media (max-width: 1200px) {
