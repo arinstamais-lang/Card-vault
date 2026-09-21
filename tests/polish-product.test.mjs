@@ -63,3 +63,13 @@ test("worker applies security headers without trusting identity headers", async 
   assert.match(auth, /Never trust spoofable headers/);
   assert.match(auth, /oai-authenticated-user/);
 });
+
+test("confirm draft light-theme inputs use solid foreground, not near-white", async () => {
+  const css = await read("app/globals.css");
+  // confirm draft light-theme input contrast
+  assert.match(css, /:root\[data-theme="light"\] \.field input/);
+  assert.match(css, /color:\s*#162033/);
+  assert.match(css, /-webkit-text-fill-color:\s*#162033/);
+  assert.match(css, /\.scanner-dialog \.scanner-footer/);
+  assert.match(css, /position:\s*sticky/);
+});

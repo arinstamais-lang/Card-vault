@@ -649,7 +649,11 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .install-iphone ol { margin: 12px 0 10px; padding-left: 1.2rem; }
 .install-iphone li, .install-iphone p { color: #3e4c63; font-size: 14px; line-height: 1.5; }
 .install-iphone p { margin: 0; }
-.scanner-dialog { width: min(620px, calc(100vw - 24px)); max-width: 620px; max-height: min(880px, calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+.scanner-dialog { width: min(620px, calc(100vw - 24px)); max-width: 620px; max-height: min(880px, calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); display: flex; flex-direction: column; overflow: hidden; }
+.scanner-dialog .scanner-form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.scanner-dialog .scanner-form .form-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.scanner-dialog .scanner-footer { flex-shrink: 0; position: sticky; bottom: 0; z-index: 3; margin-top: 10px; padding-top: 12px; padding-bottom: max(4px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(255, 255, 255, 0.08); background: #101722; }
+:root[data-theme="light"] .scanner-dialog .scanner-footer { border-top-color: rgba(22, 32, 51, 0.1); background: #fff; }
 .empty-vault-viewer { min-height: 475px; padding: 38px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .empty-vault-viewer > div { width: 70px; height: 70px; display: grid; place-items: center; border: 1px solid rgba(101, 247, 213, 0.18); border-radius: 21px; color: #65f7d5; background: rgba(101, 247, 213, 0.055); }
 .empty-vault-viewer svg { width: 30px; }
@@ -899,6 +903,22 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 :root[data-theme="light"] .feed-status { border-color: rgba(22, 32, 51, 0.09); }
 :root[data-theme="light"] .vault-footer { color: #7e8b9e; }
 :root[data-theme="light"] .asset-dialog { border-color: rgba(15, 159, 139, 0.2); background: #fff; box-shadow: 0 35px 100px rgba(32, 56, 88, 0.2); }
+:root[data-theme="light"] .field label { color: #3e4c63; }
+:root[data-theme="light"] .field input,
+:root[data-theme="light"] .field textarea,
+:root[data-theme="light"] .field [data-slot="select-trigger"] {
+  border-color: rgba(22, 32, 51, 0.14);
+  background: #f1f5f9;
+  color: #162033;
+  -webkit-text-fill-color: #162033;
+}
+:root[data-theme="light"] .field input::placeholder,
+:root[data-theme="light"] .field textarea::placeholder {
+  color: #8794a6;
+  -webkit-text-fill-color: #8794a6;
+  opacity: 1;
+}
+
 :root[data-theme="light"] .scanner-progress span { border-color: rgba(22, 32, 51, 0.14); color: #718095; background: #fff; }
 :root[data-theme="light"] .scanner-progress span.is-active { border-color: rgba(15, 159, 139, 0.35); color: #087565; background: #e7f8f4; }
 :root[data-theme="light"] .scanner-guide { border-color: rgba(15, 159, 139, 0.25); background: radial-gradient(circle at 50% 42%, rgba(15, 159, 139, 0.08), transparent 48%), #f4f7fb; }
