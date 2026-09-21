@@ -43,3 +43,28 @@ export const assetFinancials = sqliteTable(
     index("idx_asset_financials_owner").on(table.ownerId),
   ],
 );
+
+export const valuationHistory = sqliteTable(
+  "valuation_history",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    ownerId: text("owner_id").notNull(),
+    assetKey: text("asset_key").notNull(),
+    checkedAt: text("checked_at").notNull(),
+    evidenceKind: text("evidence_kind").notNull(),
+    matchKind: text("match_kind").notNull(),
+    conditionKind: text("condition_kind").notNull(),
+    confidence: text("confidence").notNull().default("none"),
+    rangeAudLow: real("range_aud_low"),
+    rangeAudHigh: real("range_aud_high"),
+    rangeUsdLow: real("range_usd_low"),
+    rangeUsdHigh: real("range_usd_high"),
+    sourceUrl: text("source_url").notNull().default(""),
+    note: text("note").notNull().default(""),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_valuation_history_owner_asset").on(table.ownerId, table.assetKey, table.createdAt),
+    index("idx_valuation_history_owner").on(table.ownerId),
+  ],
+);

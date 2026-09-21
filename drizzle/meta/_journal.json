@@ -36,6 +36,13 @@
       "when": 1758442500000,
       "tag": "0004_phase2_collection_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1758446400000,
+      "tag": "0005_phase3_valuation_history",
+      "breakpoints": true
     }
   ]
 }

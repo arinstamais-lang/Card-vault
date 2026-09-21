@@ -13,6 +13,7 @@ import {
 } from "./vault-policy";
 import { r2KeysForAsset } from "./vault-media";
 import { getBucket } from "./storage";
+import { deleteOwnedValuations, deleteValuationsForAsset } from "./valuation-store";
 
 export function serializeAsset(row: typeof assets.$inferSelect) {
   return {
@@ -129,6 +130,7 @@ export async function deleteOwnedAsset(identity: VaultIdentityLike, id: number) 
   await getDb()
     .delete(assetFinancials)
     .where(and(eq(assetFinancials.assetKey, assetKey), inArray(assetFinancials.ownerId, identity.ownerIds)));
+  await deleteValuationsForAsset(identity, assetKey);
   await getDb()
     .delete(assets)
     .where(and(eq(assets.id, owned.row.id), inArray(assets.ownerId, identity.ownerIds)));
@@ -142,6 +144,7 @@ export async function deleteOwnedCollection(identity: VaultIdentityLike) {
   const scanKeys = [...new Set(rows.flatMap((row) => r2KeysForAsset(row)))];
 
   await getDb().delete(assetFinancials).where(inArray(assetFinancials.ownerId, identity.ownerIds));
+  await deleteOwnedValuations(identity);
   await getDb().delete(assets).where(inArray(assets.ownerId, identity.ownerIds));
   await deleteScanObjects(scanKeys);
 
