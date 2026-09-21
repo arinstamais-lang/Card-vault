@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788574144474,
+      "tag": "0000_lyrical_carnage",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788678289190,
+      "tag": "0001_lumpy_moira_mactaggert",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788755149222,
+      "tag": "0002_majestic_nighthawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788861847987,
+      "tag": "0003_brainy_vargas",
+      "breakpoints": true
+    }
+  ]
+}
