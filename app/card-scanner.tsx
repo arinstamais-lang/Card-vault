@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { detectCardDetails, detectionDraftCopy, type CardDetection } from "@/lib/card-detection";
+import { detectCardDetails, detectionDraftCopy, shouldAutoSaveDetection, type CardDetection } from "@/lib/card-detection";
 
 export type ScannerAsset = {
   id: number;
@@ -57,6 +57,34 @@ const EMPTY_DETECTION: CardDetection = {
   serial: "",
   confidence: 0,
 };
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+function scanFormFromDetection(detection: CardDetection, frontFile: File, backFile: File) {
+  const values = new FormData();
+  values.set("name", detection.name);
+  values.set("sport", detection.sport);
+  values.set("year", detection.year);
+  values.set("setName", detection.setName);
+  values.set("cardNumber", detection.cardNumber);
+  values.set("serial", detection.serial);
+  values.set("parallel", detection.parallel);
+  values.set("description", "");
+  values.set("manualValueAud", "");
+  values.set("autoDetected", detection.name.trim() ? "true" : "false");
+  values.set("front", frontFile);
+  values.set("back", backFile);
+  return values;
+}
+
+async function postScanCard(values: FormData, signal?: AbortSignal) {
+  const response = await fetch("/api/scan-card", { method: "POST", body: values, signal });
+  const payload = (await response.json()) as { asset?: ScannerAsset; error?: string };
+  if (!response.ok || !payload.asset) throw new Error(payload.error || "Could not save card");
+  return payload.asset;
+}
 
 function loadPhoto(file: File) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -248,7 +276,7 @@ function CaptureStep({
       <p className="scanner-iphone-hint scanner-library-hint">
         Camera blocked or missing? Use <strong>Choose from library</strong> — it opens Photos or Files and does not need the camera.
       </p>
-      <div className="scanner-privacy"><ShieldCheck aria-hidden="true" /> Your photos stay inside your private vault until you confirm and save.</div>
+      <div className="scanner-privacy"><ShieldCheck aria-hidden="true" /> Your photos stay inside your private vault. A solid read can save immediately; anything uncertain waits for you to confirm.</div>
     </div>
   );
 }
@@ -278,10 +306,16 @@ export function CardScanner({
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisLabel, setAnalysisLabel] = useState("Preparing card reader…");
   const [analysisError, setAnalysisError] = useState("");
+  const [autoSaving, setAutoSaving] = useState(false);
   const frontPreviewRef = useRef("");
   const backPreviewRef = useRef("");
+  const analysisToken = useRef(0);
+  const saveAbortRef = useRef<AbortController | null>(null);
 
   function reset() {
+    analysisToken.current += 1;
+    saveAbortRef.current?.abort();
+    saveAbortRef.current = null;
     if (frontPreviewRef.current) URL.revokeObjectURL(frontPreviewRef.current);
     if (backPreviewRef.current) URL.revokeObjectURL(backPreviewRef.current);
     frontPreviewRef.current = "";
@@ -292,27 +326,49 @@ export function CardScanner({
     setFrontPreview("");
     setBackPreview("");
     setSaving(false);
+    setAutoSaving(false);
     setDetection(EMPTY_DETECTION);
     setAnalysisProgress(0);
     setAnalysisLabel("Preparing card reader…");
     setAnalysisError("");
   }
 
+  function changeOpen(nextOpen: boolean) {
+    if (open === undefined) setUncontrolledOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+    if (!nextOpen) reset();
+  }
+
   async function analyseCard() {
     if (!front || !back) return;
+    const token = ++analysisToken.current;
+    saveAbortRef.current?.abort();
+    const abort = new AbortController();
+    saveAbortRef.current = abort;
+    let acceptLabels = true;
+    const reportLabel = (label: string) => {
+      if (!acceptLabels || token !== analysisToken.current) return;
+      setAnalysisLabel(label);
+    };
+
     setStep("analysis");
+    setAutoSaving(false);
+    setSaving(false);
     setAnalysisProgress(4);
     setAnalysisLabel("Preparing card reader…");
     setAnalysisError("");
 
+    let result: CardDetection | null = null;
     try {
       const { createWorker, PSM } = await import("tesseract.js");
+      if (token !== analysisToken.current) return;
       let phase: Side = "front";
       const worker = await createWorker("eng", 1, {
         workerPath: "/tesseract/worker.min.js",
         corePath: "/tesseract",
         langPath: "/tesseract/lang",
         logger: ({ status, progress }) => {
+          if (token !== analysisToken.current) return;
           if (status === "recognizing text") {
             const base = phase === "front" ? 12 : 55;
             const nextProgress = Math.round(base + progress * 38);
@@ -328,32 +384,53 @@ export function CardScanner({
           user_defined_dpi: "300",
         });
         phase = "front";
-        const frontText = await recogniseBestOrientation(worker, front, "front", setAnalysisLabel);
+        const frontText = await recogniseBestOrientation(worker, front, "front", reportLabel);
         phase = "back";
-        const backText = await recogniseBestOrientation(worker, back, "back", setAnalysisLabel);
-        setAnalysisLabel("Organising card details…");
+        const backText = await recogniseBestOrientation(worker, back, "back", reportLabel);
+        if (token !== analysisToken.current) return;
+        reportLabel("Organising card details…");
         setAnalysisProgress(97);
-        const result = detectCardDetails(frontText, backText, knownCardNames);
-        setDetection(result);
-        setAnalysisProgress(100);
-        setStep("details");
-        if (!result.name) {
-          setAnalysisError("The card name was not clear enough. Add it below and check the other details.");
-        }
+        result = detectCardDetails(frontText, backText, knownCardNames);
       } finally {
         await worker.terminate();
       }
     } catch {
+      if (token !== analysisToken.current) return;
+      setAutoSaving(false);
       setDetection(EMPTY_DETECTION);
       setAnalysisProgress(0);
       setAnalysisError("The card reader could not read these photos. Try again, or enter the details yourself.");
+      return;
     }
-  }
 
-  function changeOpen(nextOpen: boolean) {
-    if (open === undefined) setUncontrolledOpen(nextOpen);
-    onOpenChange?.(nextOpen);
-    if (!nextOpen) reset();
+    if (!result || token !== analysisToken.current) return;
+    acceptLabels = false;
+    setDetection(result);
+    setAnalysisProgress(100);
+
+    if (!shouldAutoSaveDetection(result)) {
+      setStep("details");
+      if (!result.name.trim()) {
+        setAnalysisError("The card name was not clear enough. Add it below and check the other details.");
+      }
+      return;
+    }
+
+    setAutoSaving(true);
+    setSaving(true);
+    setAnalysisLabel("Saving to vault…");
+    try {
+      const asset = await postScanCard(scanFormFromDetection(result, front, back), abort.signal);
+      onAdded(asset);
+      toast.success(`${asset.name} scanned into the vault`);
+      if (token === analysisToken.current) changeOpen(false);
+    } catch (error) {
+      if (token !== analysisToken.current || isAbortError(error)) return;
+      setAutoSaving(false);
+      setSaving(false);
+      setAnalysisError(error instanceof Error ? error.message : "Could not save card");
+      setStep("details");
+    }
   }
 
   function choose(side: Side) {
@@ -414,11 +491,9 @@ export function CardScanner({
 
     setSaving(true);
     try {
-      const response = await fetch("/api/scan-card", { method: "POST", body: values });
-      const payload = (await response.json().catch(() => ({}))) as { asset?: ScannerAsset; error?: string };
-      if (!response.ok || !payload.asset) throw new Error(payload.error || "Could not save card");
-      onAdded(payload.asset);
-      toast.success(`${payload.asset.name} scanned into the vault`);
+      const asset = await postScanCard(values);
+      onAdded(asset);
+      toast.success(`${asset.name} scanned into the vault`);
       changeOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save card");
@@ -444,10 +519,14 @@ export function CardScanner({
           <div className="scanner-progress" aria-label={`Step ${stepNumber} of 3`}>
             {[1, 2, 3].map((number) => <span key={number} className={number <= stepNumber ? "is-active" : ""}>{number < stepNumber ? <Check /> : number}</span>)}
           </div>
-          <DialogTitle>{step === "front" ? "Scan the front" : step === "back" ? "Scan the back" : step === "analysis" ? (analysisError ? "Could not read the card" : "Identifying the card") : "Confirm the draft"}</DialogTitle>
+          <DialogTitle>{step === "front" ? "Scan the front" : step === "back" ? "Scan the back" : step === "analysis" ? (analysisError ? "Could not read the card" : autoSaving ? "Saving to vault" : "Identifying the card") : "Confirm the draft"}</DialogTitle>
           <DialogDescription>
             {step === "analysis"
-              ? (analysisError ? "Nothing was saved. You can retry or type the details yourself." : "Reading both sides. Unread fields stay blank — we do not invent athlete names.")
+              ? (analysisError
+                ? "Nothing was saved. You can retry or type the details yourself."
+                : autoSaving
+                  ? "This read looks solid, so it is saving now. Blank fields stay blank, and you can edit the card in the vault."
+                  : "Reading both sides. Unread fields stay blank — we do not invent athlete names.")
               : step === "details"
                 ? "This is a draft. Confirm or correct every field before it is saved to your vault."
                 : "Use a plain background and soft light. If the camera is blocked, choose a photo from your library."}
@@ -474,7 +553,11 @@ export function CardScanner({
           <div className="scanner-analysis" aria-live="polite" aria-busy="true" role="status">
             <div className="scanner-analysis-icon"><ScanLine /><span /></div>
             <strong>{analysisLabel}</strong>
-            <span>The first scan can take a little longer while the card reader loads. Fields we cannot read stay empty.</span>
+            <span>
+              {autoSaving
+                ? "Adding the photos and only the fields that were read. Nothing unread is filled in."
+                : "The first scan can take a little longer while the card reader loads. Fields we cannot read stay empty."}
+            </span>
             <Progress className="scanner-analysis-progress" value={analysisProgress} />
             <small>{analysisProgress}%</small>
           </div>

@@ -73,3 +73,70 @@ test("low OCR confidence is labelled as a draft, not identity", () => {
   assert.match(low.title, /confirm before saving/i);
   assert.match(low.confidenceLabel, /not identity/i);
 });
+
+function detectionFixture(overrides = {}) {
+  return {
+    name: "Carlos Prates",
+    sport: "UFC / MMA",
+    year: "",
+    setName: "",
+    cardNumber: "",
+    parallel: "",
+    serial: "",
+    confidence: 80,
+    ...overrides,
+  };
+}
+
+test("auto-save threshold is OCR 80 with name and sport required", () => {
+  assert.equal(detection.AUTO_SAVE_MIN_CONFIDENCE, 80);
+});
+
+test("high confidence name and sport can skip confirm", () => {
+  assert.equal(detection.shouldAutoSaveDetection(detectionFixture({
+    confidence: 90,
+    setName: "Topps Chrome UFC",
+    cardNumber: "CAV-CPS",
+  })), true);
+});
+
+test("missing sport stays on confirm even at high confidence", () => {
+  assert.equal(detection.shouldAutoSaveDetection(detectionFixture({ sport: "", confidence: 90 })), false);
+  assert.equal(detection.shouldAutoSaveDetection(detectionFixture({ sport: "   ", confidence: 90 })), false);
+});
+
+test("confidence 79 stays on confirm", () => {
+  assert.equal(detection.shouldAutoSaveDetection(detectionFixture({ confidence: 79 })), false);
+});
+
+test("blank year still auto-saves when name, sport, and confidence clear the gate", () => {
+  const draft = detectionFixture({ year: "", confidence: 80 });
+  assert.equal(draft.year, "");
+  assert.equal(detection.shouldAutoSaveDetection(draft), true);
+});
+
+test("empty name stays on confirm", () => {
+  assert.equal(detection.shouldAutoSaveDetection(detectionFixture({ name: "", confidence: 90 })), false);
+  assert.equal(detection.shouldAutoSaveDetection(detectionFixture({ name: "   ", confidence: 90 })), false);
+});
+
+test("name and sport alone stay under 80 and do not auto-save", () => {
+  const result = detection.detectCardDetails("CARLOS PRATES\nUFC", "");
+  assert.equal(result.name, "Carlos Prates");
+  assert.equal(result.sport, "UFC / MMA");
+  assert.equal(result.year, "");
+  assert.ok(result.confidence < detection.AUTO_SAVE_MIN_CONFIDENCE);
+  assert.equal(detection.shouldAutoSaveDetection(result), false);
+});
+
+test("a solid read with a blank year auto-saves without inventing a year", () => {
+  const result = detection.detectCardDetails(
+    "CARLOS PRATES\nUFC\nTOPPS CHROME\nCAV-CPS\n69/99\nREFRACTOR",
+    "",
+  );
+  assert.equal(result.name, "Carlos Prates");
+  assert.equal(result.sport, "UFC / MMA");
+  assert.equal(result.year, "");
+  assert.ok(result.confidence >= detection.AUTO_SAVE_MIN_CONFIDENCE);
+  assert.equal(detection.shouldAutoSaveDetection(result), true);
+});

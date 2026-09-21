@@ -216,6 +216,20 @@ export function filledDetectionCount(detection: CardDetection) {
   return DETECTION_KEYS.filter((key) => Boolean(detection[key])).length;
 }
 
+/** Skip Confirm only at this OCR confidence, and only when name and sport were actually read. */
+export const AUTO_SAVE_MIN_CONFIDENCE = 80;
+
+/**
+ * High-confidence drafts can save without the Confirm step.
+ * Requires trimmed fighter/name, trimmed sport, and confidence >= 80.
+ * Year is not required: a blank year stays blank and is never invented to pass this gate.
+ */
+export function shouldAutoSaveDetection(detection: CardDetection) {
+  return detection.confidence >= AUTO_SAVE_MIN_CONFIDENCE
+    && detection.name.trim().length > 0
+    && detection.sport.trim().length > 0;
+}
+
 export function detectionDraftCopy(detection: CardDetection) {
   const filled = filledDetectionCount(detection);
   if (!detection.name && filled === 0) {
