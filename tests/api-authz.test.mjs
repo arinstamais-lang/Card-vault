@@ -94,6 +94,24 @@ test("plain eBay search does not fake affiliate tracking when campaign IDs are m
   assert.doesNotMatch(location, /LH_Sold=/);
 });
 
+test("service worker responses advertise the root scope", async () => {
+  const response = await fetchPath(
+    "/sw.js",
+    {},
+    env({
+      ASSETS: {
+        fetch: async () =>
+          new Response("self.addEventListener('fetch', () => {});", {
+            headers: { "content-type": "text/plain" },
+          }),
+      },
+    }),
+  );
+  assert.match(response.headers.get("content-type") ?? "", /javascript/i);
+  assert.equal(response.headers.get("service-worker-allowed"), "/");
+  assert.match(response.headers.get("cache-control") ?? "", /no-cache/i);
+});
+
 test("sold eBay search is marked sold and still has no tracking without campaign IDs", async () => {
   const response = await fetchPath("/go/ebay?q=CAV-CPS&kind=sold&source=asset-sold");
   assert.equal(response.status, 302);

@@ -1,13 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PwaRegister } from "./pwa-register";
 
 export const metadata: Metadata = {
   title: "Ari's Collector Vault",
   description: "A private tangible-asset tracker for cards, precious metals and rare collectibles.",
+  applicationName: "Ari's Vault",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/app-icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     shortcut: "/favicon.svg",
-    apple: "/apple-touch-icon.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -15,9 +20,15 @@ export const metadata: Metadata = {
     title: "Ari's Vault",
     statusBarStyle: "black-translucent",
   },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
   colorScheme: "light dark",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f4f7fb" },
@@ -32,7 +43,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-AU">
-      <body>{children}</body>
+      <body>
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }

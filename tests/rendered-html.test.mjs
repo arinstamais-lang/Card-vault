@@ -29,4 +29,7 @@ test("renders the signed-out ChatGPT landing page", async () => {
   const html = await response.text();
   assert.match(html, /login-page/);
   assert.match(html, /Continue with ChatGPT/);
+  assert.match(html, /Install on iPhone/);
+  assert.match(html, /Add to Home Screen/);
+  assert.match(html, /Skip to sign in/);
 });

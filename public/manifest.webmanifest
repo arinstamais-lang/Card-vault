@@ -1,21 +1,42 @@
 {
+  "id": "/",
   "name": "Ari's Collector Vault",
   "short_name": "Ari's Vault",
-  "description": "Track cards, precious metals and rare collectibles.",
+  "description": "Scan trading cards, keep a private collection, and track asking vs sold evidence for cards, metals and rare collectibles.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#f4f7fb",
   "theme_color": "#0f9f8b",
+  "lang": "en-AU",
+  "dir": "ltr",
+  "categories": ["utilities", "finance", "lifestyle"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/app-icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/app-icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
