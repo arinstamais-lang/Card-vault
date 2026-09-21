@@ -1130,16 +1130,11 @@ function EmptyVaultFirstRun({ onScan }: { onScan: () => void }) {
     <div className="empty-vault-viewer">
       <div><ScanLine aria-hidden="true" /></div>
       <h3>Your vault is empty</h3>
-      <p>This signed-in collection starts blank — no sample cards and no demo prices. Scan a real card, or add a metal or collectible from the header.</p>
-      <ol className="empty-vault-tips">
-        <li>Photograph the front and back in good light.</li>
-        <li>Check the draft. Blank fields were not read; we do not invent names.</li>
-        <li>Save into your private vault. Asking prices stay separate from sold evidence.</li>
-      </ol>
+      <p>No sample cards and no demo prices. Blank means unread — we do not invent names or prices.</p>
       <Button type="button" className="empty-vault-cta scan-card-button" onClick={onScan} aria-label="Scan your first card">
-        <ScanLine aria-hidden="true" /> Scan your first card
+        <ScanLine aria-hidden="true" /> Scan card
       </Button>
-      <span>Use Add asset in the header for bullion and other items without a scan.</span>
+      <span>No camera? Choose a photo from your library in the next step. On iPhone, use Safari at card-vault.ariscardvault.workers.dev and Add to Home Screen.</span>
     </div>
   );
 }
@@ -1555,7 +1550,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
               <div className="empty-filter empty-filter-first-run">
                 <ScanLine aria-hidden="true" />
                 <strong>No cards saved yet</strong>
-                <span>Scan front and back, confirm the draft, then it appears here. No sample prices.</span>
+                <span>Scan card. No camera? Choose a photo from your library. No sample prices.</span>
                 <Button type="button" className="empty-vault-cta scan-card-button" onClick={() => setScanOpen(true)} aria-label="Scan a card into an empty vault">
                   Scan card
                 </Button>
@@ -1636,7 +1631,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
 
           {collection.length === 0 ? (
             <>
-              <div className="empty-vault-intel"><ScanLine /><div><strong>Scan, then confirm</strong><span>Front and back photos become a draft. Unread fields stay blank. We never invent athlete names or sold prices.</span></div></div>
+              <div className="empty-vault-intel"><ScanLine /><div><strong>Scan card</strong><span>Front and back, then check anything uncertain. Blank means unread. We do not invent names or prices.</span></div></div>
               <div className="empty-vault-intel"><ShieldCheck /><div><strong>Asking stays separate from sold</strong><span>eBay active listings are asking prices. Sold searches are completed sales. Affiliate tracking stays off without a campaign ID.</span></div></div>
             </>
           ) : selected.isOwnerPhoto && selected.category === "silver" ? (

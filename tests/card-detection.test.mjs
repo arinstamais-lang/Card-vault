@@ -71,7 +71,9 @@ test("low OCR confidence is labelled as a draft, not identity", () => {
   });
   assert.equal(low.level, "low");
   assert.match(low.title, /confirm before saving/i);
-  assert.match(low.confidenceLabel, /not identity/i);
+  assert.match(low.body, /blank means unread/i);
+  assert.match(low.confidenceLabel, /check before saving/i);
+  assert.doesNotMatch(low.confidenceLabel, /\bOCR\b|identity/i);
 });
 
 function detectionFixture(overrides = {}) {

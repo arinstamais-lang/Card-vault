@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Camera, Check, RefreshCw, ScanLine, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, ImagePlus, RefreshCw, ScanLine, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -233,7 +233,7 @@ function CaptureStep({
   onChoose: (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   const cameraLabel = file ? `Retake ${side} with camera` : `Take ${side} photo`;
-  const libraryLabel = file ? `Choose a different ${side} photo` : `Choose ${side} from library`;
+  const libraryLabel = `Choose ${side} from library`;
 
   return (
     <div className="scanner-stage">
@@ -261,7 +261,11 @@ function CaptureStep({
           />
         </label>
         <label className="scanner-library-button">
-          {libraryLabel}
+          <ImagePlus aria-hidden="true" />
+          <span>
+            Choose from library
+            <small>Camera blocked or missing</small>
+          </span>
           <input
             type="file"
             accept={SCAN_ACCEPT}
@@ -271,10 +275,10 @@ function CaptureStep({
         </label>
       </div>
       <p className="scanner-iphone-hint">
-        On iPhone Safari, the first tap asks for Camera or Photos access. Allow it, then keep the card in the frame.
+        On iPhone Safari, open card-vault.ariscardvault.workers.dev and Add to Home Screen so the camera can open.
       </p>
       <p className="scanner-iphone-hint scanner-library-hint">
-        Camera blocked or missing? Use <strong>Choose from library</strong> — it opens Photos or Files and does not need the camera.
+        Camera blocked or missing? <strong>Choose from library</strong> opens Photos or Files. No camera needed.
       </p>
       <div className="scanner-privacy"><ShieldCheck aria-hidden="true" /> Your photos stay inside your private vault. A solid read can save immediately; anything uncertain waits for you to confirm.</div>
     </div>
@@ -519,7 +523,7 @@ export function CardScanner({
           <div className="scanner-progress" aria-label={`Step ${stepNumber} of 3`}>
             {[1, 2, 3].map((number) => <span key={number} className={number <= stepNumber ? "is-active" : ""}>{number < stepNumber ? <Check /> : number}</span>)}
           </div>
-          <DialogTitle>{step === "front" ? "Scan the front" : step === "back" ? "Scan the back" : step === "analysis" ? (analysisError ? "Could not read the card" : autoSaving ? "Saving to vault" : "Identifying the card") : "Confirm the draft"}</DialogTitle>
+          <DialogTitle>{step === "front" ? "Scan the front" : step === "back" ? "Scan the back" : step === "analysis" ? (analysisError ? "Could not read the card" : autoSaving ? "Saving to vault" : "Reading the card") : "Confirm the draft"}</DialogTitle>
           <DialogDescription>
             {step === "analysis"
               ? (analysisError
@@ -636,9 +640,9 @@ export function CardScanner({
               className="save-asset-button"
               disabled={step === "front" ? !front : !back}
               onClick={() => step === "front" ? setStep("back") : void analyseCard()}
-              aria-label={step === "front" ? "Continue to back photo" : "Identify card from both photos"}
+              aria-label={step === "front" ? "Continue to back photo" : "Scan card from both photos"}
             >
-              {step === "front" ? "Continue" : "Identify card"} <ArrowRight aria-hidden="true" />
+              {step === "front" ? "Continue" : "Scan card"} <ArrowRight aria-hidden="true" />
             </Button>
           </DialogFooter>
         )}
