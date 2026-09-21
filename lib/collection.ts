@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { getDb } from "../../db";
-import { assetFinancials, assets } from "../../db/schema";
+import { getDb } from "../db";
+import { assetFinancials, assets } from "../db/schema";
 import {
   accessOwnedRow,
   asFlag,
@@ -10,9 +10,9 @@ import {
   preferCurrentOwnerFinancial,
   storedAssetKey,
   type VaultIdentityLike,
-} from "../vault-policy";
-import { r2KeysForAsset } from "../vault-media";
-import { getBucket } from "../storage";
+} from "./vault-policy";
+import { r2KeysForAsset } from "./vault-media";
+import { getBucket } from "./storage";
 
 export function serializeAsset(row: typeof assets.$inferSelect) {
   return {

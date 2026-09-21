@@ -315,7 +315,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #65f7d5; outline-offs
 .asset-tabs::-webkit-scrollbar { display: none; }
 .asset-tabs button { flex: 0 0 auto; min-width: auto; height: 30px; padding: 0 9px; color: #75817c; font-size: 11px; }
 .asset-tabs button[data-state="active"] { color: #dcfff7; background: rgba(101, 247, 213, 0.12); box-shadow: none; }
-.asset-list { min-height: 220px; max-height: 440px; padding: 0 12px 12px; overflow-y: auto; }
+.asset-list { min-height: 220px; max-height: 440px; padding: 0 12px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
 .asset-list::-webkit-scrollbar { width: 7px; }
 .asset-list::-webkit-scrollbar-thumb { border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
 .asset-row-skeleton { width: 100%; height: 88px; margin-bottom: 9px; background: rgba(255, 255, 255, 0.05); }

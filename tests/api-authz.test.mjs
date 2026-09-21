@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const developmentPreviewMeta =
-  /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
-
 const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-authz`);
 const { default: worker } = await import(workerUrl.href);
@@ -77,5 +74,8 @@ test("public landing page still loads without sign-in", async () => {
     headers: { accept: "text/html" },
   });
   assert.equal(response.status, 200);
-  assert.match(await response.text(), developmentPreviewMeta);
+  const html = await response.text();
+  assert.match(html, /login-page/);
+  assert.match(html, /Continue with ChatGPT/);
+  assert.match(html, /signin-with-chatgpt/);
 });

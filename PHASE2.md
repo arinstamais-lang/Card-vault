@@ -13,7 +13,7 @@ Rule: **PATCH**, do not rebuild scanner or ChatGPT sign-in.
 | **Edit-asset API** | `PATCH /api/assets` updates notes (`description`), name/serial/source/manual value, wishlist, showcase, and optional purchase price/date. Loads the row first and rejects another owner's id (`403`). Financial writes also require owning `asset-{id}` or being the legacy owner for seed keys. |
 | **Financial key squat** | `asset_financials` primary key is now `(owner_id, asset_key)` (migration `0004`). A cost row for one owner no longer blocks another owner on the same key. PUT/PATCH refuse unknown keys and keys the caller does not own. |
 | **Seed photo gap** | Worker gates `/cards/*` and `/metals/*` image paths: unsigned → `401`. If `VAULT_LEGACY_OWNER_ID` is set, only that user is served (`404` for everyone else). Responses use `cache-control: private`. Scanned photos stay on `/api/card-image` with a DB ownership check. |
-| **Authz tests** | Unsigned collection APIs return `401`. Policy tests cover foreign-owner read/write denial, seed-key squat, and zip/export helpers. |
+| **Authz tests** | Unsigned collection APIs return `401`. Policy tests cover foreign-owner read/write denial, seed-key squat, and zip/export helpers. `npm test` loads the worker through `tests/register-cloudflare.mjs` so Node can import `cloudflare:workers`. |
 | **UI** | Export + delete in the signed-in header (hidden in showcase mode). Edit dialog on saved (D1) items. ChatGPT sign-in, on-device OCR, and confirmation save are unchanged. |
 | **Privacy copy** | Export/delete and catalog-photo rules described on `/privacy`. |
 
