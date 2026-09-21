@@ -1,6 +1,8 @@
 # vinext-starter
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with Cloudflare D1, R2, and Drizzle support.
+
+**Rehost (Cloudflare Workers):** see [`REHOST.md`](./REHOST.md) for `wrangler.toml`, Google sign-in secrets, D1 migrations, and cutover notes. ChatGPT Sites remains live until that cutover; this tree no longer trusts Sites identity headers.
 
 ## Prerequisites
 
@@ -11,7 +13,7 @@ A clean full-stack starter running on [vinext](https://github.com/cloudflare/vin
 
 The Sites lifecycle CLI runs the locked dependency install before returning this checkout. Edit the source under `app/`, then checkpoint when a coherent milestone is ready to inspect or share. The remote Sites builder runs `npm run build` against the pushed commit. Do not repeat install or build as a normal pre-checkpoint step.
 
-This starter does not use `wrangler.jsonc`.
+This app uses `wrangler.toml` for Workers + D1 + R2. ChatGPT Sites packaging is opt-in (`SITES_BUILD=1`).
 
 `install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
 
@@ -20,68 +22,35 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 ## Included Shape
 
 - edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
+- `app/auth.ts` provides Google OpenID sign-in helpers (session cookie)
+- `app/vault-auth.ts` maps the signed-in user onto per-vault `ownerIds`
+- `wrangler.toml` declares D1 (`DB` → `card-vault`) and R2 (`BUCKET` → `card-vault`)
+- `vite.config.ts` uses that Wrangler config for local development
 - `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
+- `.openai/hosting.json` remains for an optional Sites rebuild only
 - `db/schema.ts` starts intentionally empty
 - `examples/d1/` contains an optional D1 example surface
 - `drizzle.config.ts` supports local migration generation when needed
 
-## Workspace Auth Headers
+## Google Sign-In
 
-OpenAI workspace sites can read the current user's email from `oai-authenticated-user-email`.
+Identity is a signed `vault_session` cookie from Google OpenID. Helpers live in `app/auth.ts`:
 
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+- `getUser()` / `requireUser(returnTo)` for server-rendered pages
+- `<a href={signInPath(returnTo)} target="_top">` to start sign-in (top-level navigation)
+- `signOutPath(returnTo)` for the header sign-out link
 
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
+Do not trust `oai-authenticated-user-*` headers on the Worker. Until `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `SESSION_SECRET` are set, `/auth/google` returns 503 and does not create a session. Setup is in [`REHOST.md`](./REHOST.md).
 
 ## Diagnostic Commands
 
 - `npm run install:ci`: perform the one bounded lockfile install
 - `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
+- `npm run build`: build the deployable Vinext Worker
 - `npm run start`: start the built Vinext application
-- `npm test`: build and verify the rendered development-preview metadata
+- `npm test`: build and run Node tests
 - `npm run db:generate`: generate Drizzle migrations after schema changes
+- `npm run cf:deploy`: build and `wrangler deploy` (requires Cloudflare credentials and a real D1 id)
 
 Use build commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
 

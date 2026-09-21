@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { env as workerEnv } from "./cloudflare-workers-mock.mjs";
+
 const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-authz`);
 const { default: worker } = await import(workerUrl.href);
@@ -10,6 +12,8 @@ const executionContext = {
   passThroughOnException() {},
 };
 
+const encoder = new TextEncoder();
+
 function env(overrides = {}) {
   return {
     ASSETS: {
@@ -17,6 +21,26 @@ function env(overrides = {}) {
     },
     ...overrides,
   };
+}
+
+async function signVaultSession(user, secret) {
+  const iat = Math.floor(Date.now() / 1000);
+  const payload = {
+    t: "session",
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    fullName: user.fullName,
+    iat,
+    exp: iat + 3600,
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const unsigned = `v1.${body}`;
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
+    "sign",
+  ]);
+  const signature = Buffer.from(await crypto.subtle.sign("HMAC", key, encoder.encode(unsigned))).toString("base64url");
+  return `${unsigned}.${signature}`;
 }
 
 async function fetchPath(path, init = {}, runtime = env()) {
@@ -58,17 +82,27 @@ test("unsigned seed catalog photos return 401", async () => {
 });
 
 test("seed catalog photos stay hidden from a different signed-in owner", async () => {
+  const secret = "test-session-secret-at-least-32-chars!!";
+  const token = await signVaultSession(
+    { id: "someone-else", email: "other@example.com", displayName: "Other", fullName: null },
+    secret,
+  );
   const response = await fetchPath(
     "/cards/carlos-prates-cav-cps-69-99-front.webp",
-    {
-      headers: {
-        "oai-authenticated-user-id": "someone-else",
-        "oai-authenticated-user-email": "other@example.com",
-      },
-    },
-    env({ VAULT_LEGACY_OWNER_ID: "ari-owner" }),
+    { headers: { cookie: `vault_session=${token}` } },
+    env({ SESSION_SECRET: secret, VAULT_LEGACY_OWNER_ID: "ari-owner" }),
   );
   assert.equal(response.status, 404);
+});
+
+test("ChatGPT Sites identity headers do not authenticate on Workers", async () => {
+  const response = await fetchPath("/api/assets", {
+    headers: {
+      "oai-authenticated-user-id": "spoof",
+      "oai-authenticated-user-email": "spoof@example.com",
+    },
+  });
+  assert.equal(response.status, 401);
 });
 
 test("public landing page still loads without sign-in", async () => {
@@ -78,8 +112,22 @@ test("public landing page still loads without sign-in", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /login-page/);
-  assert.match(html, /Continue with ChatGPT/);
-  assert.match(html, /signin-with-chatgpt/);
+  assert.match(html, /Sign in with Google/);
+  assert.match(html, /\/auth\/google/);
+  assert.doesNotMatch(html, /Continue with ChatGPT/);
+});
+
+test("Google sign-in fails clearly when Worker secrets are missing", async () => {
+  delete workerEnv.GOOGLE_CLIENT_ID;
+  delete workerEnv.GOOGLE_CLIENT_SECRET;
+  delete workerEnv.SESSION_SECRET;
+  const response = await fetchPath("/auth/google", { headers: { accept: "text/html" } });
+  assert.equal(response.status, 503);
+  const html = await response.text();
+  assert.match(html, /Google sign-in is not configured/);
+  assert.match(html, /GOOGLE_CLIENT_ID/);
+  assert.match(html, /SESSION_SECRET/);
+  assert.doesNotMatch(html, /login-page/);
 });
 
 test("plain eBay search does not fake affiliate tracking when campaign IDs are missing", async () => {
@@ -110,6 +158,27 @@ test("service worker responses advertise the root scope", async () => {
   assert.match(response.headers.get("content-type") ?? "", /javascript/i);
   assert.equal(response.headers.get("service-worker-allowed"), "/");
   assert.match(response.headers.get("cache-control") ?? "", /no-cache/i);
+});
+
+test("Google sign-in redirects to Google when Worker secrets exist", async () => {
+  Object.assign(workerEnv, {
+    GOOGLE_CLIENT_ID: "client.apps.googleusercontent.com",
+    GOOGLE_CLIENT_SECRET: "google-secret",
+    SESSION_SECRET: "test-session-secret-at-least-32-chars!!",
+  });
+  try {
+    const response = await fetchPath("/auth/google?return_to=/");
+    assert.equal(response.status, 302);
+    const location = response.headers.get("location") || "";
+    assert.match(location, /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth/);
+    assert.match(location, /client_id=client\.apps\.googleusercontent\.com/);
+    assert.match(location, /redirect_uri=http%3A%2F%2Flocalhost%2Fauth%2Fgoogle%2Fcallback/);
+    assert.match(response.headers.get("set-cookie") || "", /vault_oauth=/);
+  } finally {
+    delete workerEnv.GOOGLE_CLIENT_ID;
+    delete workerEnv.GOOGLE_CLIENT_SECRET;
+    delete workerEnv.SESSION_SECRET;
+  }
 });
 
 test("sold eBay search is marked sold and still has no tracking without campaign IDs", async () => {

@@ -36,6 +36,7 @@ test("service worker has a fetch handler and never caches private APIs", async (
   assert.match(sw, /\/api\//);
   assert.match(sw, /NEVER_CACHE_PREFIXES|shouldBypass/);
   assert.match(sw, /\/cards\//);
+  assert.match(sw, /\/auth\//);
   assert.match(sw, /offline\.html/);
   await exists("public/offline.html");
 });
@@ -68,7 +69,7 @@ test("landing, vault, and scanner keep accessible names on key controls", async 
   assert.match(landing, /Skip to sign in/);
   assert.match(landing, /Install on iPhone/);
   assert.match(landing, /Add to Home Screen/);
-  assert.match(landing, /Continue with ChatGPT/);
+  assert.match(landing, /Sign in with Google/);
   assert.match(landing, /aria-hidden="true"/);
 
   const vault = await read("app/card-vault.tsx");

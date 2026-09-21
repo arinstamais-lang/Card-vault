@@ -21,7 +21,7 @@ Build a mobile-first collector app that lets users scan trading cards, confirm t
 - Asset records API: `app/api/assets/route.ts`
 - Card image API: `app/api/card-image/route.ts`
 - Financial data API: `app/api/financials/route.ts`
-- Authentication helpers: `app/chatgpt-auth.ts` and `app/vault-auth.ts`
+- Authentication helpers: `app/auth.ts` (Google OpenID) and `app/vault-auth.ts`
 - Privacy page: `app/privacy/page.tsx`
 
 ## Immediate priority

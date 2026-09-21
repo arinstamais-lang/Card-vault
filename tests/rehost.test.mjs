@@ -1,0 +1,38 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+
+test("wrangler.toml names the Worker and binds D1 plus existing R2", async () => {
+  const toml = await readFile(path.join(root, "wrangler.toml"), "utf8");
+  assert.match(toml, /^name\s*=\s*"card-vault"/m);
+  assert.match(toml, /account_id\s*=\s*"f82810c8a9f4145c732dfbc751ce5976"/);
+  assert.match(toml, /binding\s*=\s*"DB"/);
+  assert.match(toml, /database_name\s*=\s*"card-vault"/);
+  assert.match(toml, /binding\s*=\s*"BUCKET"/);
+  assert.match(toml, /bucket_name\s*=\s*"card-vault"/);
+  assert.doesNotMatch(toml, /GOOGLE_CLIENT_SECRET\s*=/);
+  assert.doesNotMatch(toml, /SESSION_SECRET\s*=\s*"[^"]+"/);
+  assert.doesNotMatch(toml, /api[_-]?token/i);
+});
+
+test("REHOST.md documents deploy, secrets, drizzle 0001–0005, and Sites cutover", async () => {
+  const docs = await readFile(path.join(root, "REHOST.md"), "utf8");
+  assert.match(docs, /wrangler deploy/);
+  assert.match(docs, /GOOGLE_CLIENT_ID/);
+  assert.match(docs, /GOOGLE_CLIENT_SECRET/);
+  assert.match(docs, /SESSION_SECRET/);
+  assert.match(docs, /0001_lumpy_moira_mactaggert/);
+  assert.match(docs, /0005_phase3_valuation_history/);
+  assert.match(docs, /Sites stays live/);
+  assert.doesNotMatch(docs, /production Worker is serving users/i);
+});
+
+test("Sites vite plugin is gated off the default Workers build", async () => {
+  const vite = await readFile(path.join(root, "vite.config.ts"), "utf8");
+  assert.match(vite, /SITES_BUILD/);
+  assert.doesNotMatch(vite, /from "\.\/\.openai\/hosting\.json"/);
+});

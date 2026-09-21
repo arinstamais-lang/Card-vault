@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { CreditCard, LockKeyhole, ScanLine, Sparkles } from "lucide-react";
 
+import { signInPath, signOutPath } from "./auth";
 import { CardVault } from "./card-vault";
-import { chatGPTSignInPath, chatGPTSignOutPath } from "./chatgpt-auth";
 import { getVaultIdentity } from "./vault-auth";
 
 export const dynamic = "force-dynamic";
@@ -50,10 +50,10 @@ export default async function Home() {
             <p>WELCOME TO</p>
             <h2>Collector Vault</h2>
             <span>Sign in to open your private collection or start a new one.</span>
-            <a className="login-button" href={chatGPTSignInPath("/")} target="_top">
-              Continue with ChatGPT
+            <a className="login-button" href={signInPath("/")} target="_top">
+              Sign in with Google
             </a>
-            <small><LockKeyhole aria-hidden="true" /> Secure sign-in. We never receive your ChatGPT password.</small>
+            <small><LockKeyhole aria-hidden="true" /> Secure sign-in. We never receive your Google password.</small>
           </aside>
         </section>
       </main>
@@ -64,7 +64,7 @@ export default async function Home() {
     <CardVault
       user={{ displayName: identity.user.displayName, email: identity.user.email }}
       hasLegacyVault={identity.isLegacyOwner}
-      signOutPath={chatGPTSignOutPath("/")}
+      signOutPath={signOutPath("/")}
     />
   );
 }
