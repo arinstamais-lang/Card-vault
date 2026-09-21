@@ -125,7 +125,7 @@ function findSport(text: string) {
     [/\bFIFA\b|SOCCER/i, "Soccer"],
     [/POK[ÉE]MON|POCKET MONSTERS/i, "Pokémon"],
   ];
-  return sports.find(([pattern]) => pattern.test(text))?.[1] || "Trading card";
+  return sports.find(([pattern]) => pattern.test(text))?.[1] || "";
 }
 
 function findSet(text: string, sport: string) {
@@ -200,7 +200,7 @@ export function detectCardDetails(frontText: string, backText: string, knownName
 
   let confidence = 0;
   if (name) confidence += 40;
-  if (sport !== "Trading card") confidence += 10;
+  if (sport) confidence += 10;
   if (year) confidence += 10;
   if (setName) confidence += 18;
   if (cardNumber) confidence += 10;
