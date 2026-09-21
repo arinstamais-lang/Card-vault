@@ -12,8 +12,10 @@ import {
   CircleDollarSign,
   Coins,
   CreditCard,
+  Download,
   ExternalLink,
   Gem,
+  Heart,
   ImageIcon,
   Layers3,
   LogOut,
@@ -29,7 +31,9 @@ import {
   ShoppingBag,
   ShieldCheck,
   Sparkles,
+  Star,
   Sun,
+  Trash2,
   UserRound,
   Vault,
   WalletCards,
@@ -42,6 +46,15 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -65,6 +78,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster } from "@/components/ui/sonner";
 import { CardScanner, type ScannerAsset } from "./card-scanner";
+import { DELETE_VAULT_CONFIRMATION } from "@/lib/vault-policy";
 
 const TROY_OUNCE_GRAMS = 31.1034768;
 
@@ -391,6 +405,10 @@ type CollectionAsset = {
   purchasePriceAud?: number | null;
   purchaseDate?: string;
   scanStatus?: string;
+  wishlist?: boolean;
+  showcase?: boolean;
+  storedId?: number;
+  manualValueAud?: number | null;
 };
 
 type AssetFinancial = {
@@ -854,6 +872,234 @@ function PurchaseDialog({
   );
 }
 
+function EditAssetDialog({
+  asset,
+  onSaved,
+}: {
+  asset: CollectionAsset;
+  onSaved: (update: { asset: StoredAsset; financial?: AssetFinancial | null }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [wishlist, setWishlist] = useState(Boolean(asset.wishlist));
+  const [showcase, setShowcase] = useState(Boolean(asset.showcase));
+  const storedId = asset.storedId;
+  if (!storedId) return null;
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const rawPrice = String(form.get("purchasePriceAud") || "").trim();
+    setSaving(true);
+    try {
+      const response = await fetch("/api/assets", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: storedId,
+          name: String(form.get("name") || "").trim(),
+          description: String(form.get("description") || ""),
+          serial: String(form.get("serial") || ""),
+          sourceUrl: String(form.get("sourceUrl") || ""),
+          manualValueAud: String(form.get("manualValueAud") || "").trim()
+            ? Number(form.get("manualValueAud"))
+            : asset.category === "gold" || asset.category === "silver"
+              ? null
+              : asset.manualValueAud ?? asset.valueAud,
+          wishlist,
+          showcase,
+          purchasePriceAud: rawPrice ? Number(rawPrice) : null,
+          purchaseDate: String(form.get("purchaseDate") || ""),
+        }),
+      });
+      const payload = (await response.json()) as { asset?: StoredAsset; financial?: AssetFinancial; error?: string };
+      if (!response.ok || !payload.asset) throw new Error(payload.error || "Could not save changes");
+      onSaved({ asset: payload.asset, financial: payload.financial });
+      setOpen(false);
+      toast.success("Vault item updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => {
+      setOpen(next);
+      if (next) {
+        setWishlist(Boolean(asset.wishlist));
+        setShowcase(Boolean(asset.showcase));
+      }
+    }}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" className="purchase-button edit-asset-button">
+          <Pencil />
+          Edit
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="asset-dialog">
+        <DialogHeader>
+          <DialogTitle>Edit vault item</DialogTitle>
+          <DialogDescription>Notes, purchase details and flags stay private to your account.</DialogDescription>
+        </DialogHeader>
+        <form className="asset-form" onSubmit={submit}>
+          <div className="form-grid">
+            <div className="field full-field">
+              <Label htmlFor={`edit-name-${storedId}`}>Name</Label>
+              <Input id={`edit-name-${storedId}`} name="name" required maxLength={120} defaultValue={asset.name} />
+            </div>
+            <div className="field full-field">
+              <Label htmlFor={`edit-notes-${storedId}`}>Notes</Label>
+              <Textarea id={`edit-notes-${storedId}`} name="description" maxLength={500} defaultValue={asset.description} placeholder="Condition, set details or anything important" />
+            </div>
+            {asset.category !== "gold" && asset.category !== "silver" && (
+              <>
+                <div className="field">
+                  <Label htmlFor={`edit-serial-${storedId}`}>Serial, edition or grade</Label>
+                  <Input id={`edit-serial-${storedId}`} name="serial" maxLength={80} defaultValue={asset.serial} />
+                </div>
+                <div className="field">
+                  <Label htmlFor={`edit-value-${storedId}`}>Current value (AUD)</Label>
+                  <Input id={`edit-value-${storedId}`} name="manualValueAud" type="number" min="0" step="0.01" defaultValue={asset.manualValueAud ?? asset.valueAud ?? ""} />
+                </div>
+                <div className="field full-field">
+                  <Label htmlFor={`edit-source-${storedId}`}>Market source URL (optional)</Label>
+                  <Input id={`edit-source-${storedId}`} name="sourceUrl" type="url" defaultValue={asset.sourceUrl} placeholder="https://…" />
+                </div>
+              </>
+            )}
+            <div className="field">
+              <Label htmlFor={`edit-price-${storedId}`}>Total paid (AUD)</Label>
+              <Input id={`edit-price-${storedId}`} name="purchasePriceAud" type="number" min="0" step="0.01" defaultValue={asset.purchasePriceAud ?? ""} placeholder="Private" />
+            </div>
+            <div className="field">
+              <Label htmlFor={`edit-date-${storedId}`}>Purchase date</Label>
+              <Input id={`edit-date-${storedId}`} name="purchaseDate" type="date" defaultValue={asset.purchaseDate || ""} />
+            </div>
+            <label className="flag-check">
+              <Checkbox checked={wishlist} onCheckedChange={(value) => setWishlist(value === true)} />
+              <span><Heart /> Wishlist</span>
+            </label>
+            <label className="flag-check">
+              <Checkbox checked={showcase} onCheckedChange={(value) => setShowcase(value === true)} />
+              <span><Star /> Showcase piece</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button type="submit" className="save-asset-button" disabled={saving}>
+              {saving ? <RefreshCw className="spin" /> : <Pencil />}
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function VaultDataControls({
+  onDeleted,
+}: {
+  onDeleted: () => void;
+}) {
+  const [exporting, setExporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  async function downloadExport() {
+    setExporting(true);
+    try {
+      const response = await fetch("/api/export", { cache: "no-store" });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error || "Could not export the vault");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `card-vault-export-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Private export downloaded");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not export the vault");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function deleteVault() {
+    if (confirmText !== DELETE_VAULT_CONFIRMATION) return;
+    setDeleting(true);
+    try {
+      const response = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirm: confirmText }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Could not delete the vault");
+      setDeleteOpen(false);
+      setConfirmText("");
+      onDeleted();
+      toast.success("Saved vault data deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the vault");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <Button type="button" variant="outline" className="header-tool vault-data-button" onClick={() => void downloadExport()} disabled={exporting} aria-label="Export collection">
+        {exporting ? <RefreshCw className="spin" /> : <Download />}
+        <span>{exporting ? "Exporting…" : "Export"}</span>
+      </Button>
+      <Button type="button" variant="outline" className="header-tool vault-delete-button" onClick={() => setDeleteOpen(true)} aria-label="Delete my vault data">
+        <Trash2 />
+        <span>Delete</span>
+      </Button>
+      <AlertDialog open={deleteOpen} onOpenChange={(next) => {
+        setDeleteOpen(next);
+        if (!next) setConfirmText("");
+      }}>
+        <AlertDialogContent className="asset-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your vault data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes saved cards, private scans, notes and purchase prices for this signed-in account. App-shipped UFC and silver catalog photos stay in the app. Type <strong>{DELETE_VAULT_CONFIRMATION}</strong> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={confirmText}
+            onChange={(event) => setConfirmText(event.target.value)}
+            placeholder={DELETE_VAULT_CONFIRMATION}
+            autoComplete="off"
+            aria-label="Type the delete confirmation phrase"
+          />
+          <AlertDialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void deleteVault()}
+              disabled={deleting || confirmText !== DELETE_VAULT_CONFIRMATION}
+            >
+              {deleting ? "Deleting…" : "Delete my data"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
 type CardVaultProps = {
   user: { displayName: string; email: string };
   hasLegacyVault: boolean;
@@ -1017,6 +1263,10 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
         back: asset.backImageUrl,
         orientation: "portrait" as const,
         scanStatus: asset.scanStatus,
+        wishlist: Boolean(asset.wishlist),
+        showcase: Boolean(asset.showcase),
+        storedId: asset.id,
+        manualValueAud: asset.manualValueAud,
         purchasePriceAud: financials[`asset-${asset.id}`]?.purchasePriceAud ?? null,
         purchaseDate: financials[`asset-${asset.id}`]?.purchaseDate || "",
       })),
@@ -1066,6 +1316,40 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
     setFinancials((current) => ({ ...current, [financial.assetKey]: financial }));
   }
 
+  function saveEditedAsset({ asset, financial }: { asset: StoredAsset; financial?: AssetFinancial | null }) {
+    setStoredAssets((current) => current.map((item) => (item.id === asset.id ? asset : item)));
+    if (financial) saveFinancial(financial);
+  }
+
+  function removeStoredAsset(id: number) {
+    setStoredAssets((current) => current.filter((item) => item.id !== id));
+    setFinancials((current) => {
+      const next = { ...current };
+      delete next[`asset-${id}`];
+      return next;
+    });
+    setSelectedKey((current) => (current === `asset-${id}` ? "" : current));
+  }
+
+  async function deleteSelectedAsset(asset: CollectionAsset) {
+    if (!asset.storedId) return;
+    const confirmed = window.confirm(`Remove ${asset.name} from your vault? Private photos and purchase details for this item will be deleted.`);
+    if (!confirmed) return;
+    try {
+      const response = await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: asset.storedId }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Could not delete this item");
+      removeStoredAsset(asset.storedId);
+      toast.success(`${asset.name} removed`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete this item");
+    }
+  }
+
   return (
     <main className={`vault-page ${showcase ? "is-showcase" : ""}`}>
       <div className="ambient ambient-one" />
@@ -1088,6 +1372,11 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           <Button type="button" variant={showcase ? "default" : "outline"} className="header-tool showcase-toggle" onClick={() => setShowcase((current) => !current)}>
             {showcase ? <EyeOff /> : <Eye />}<span>{showcase ? "Exit showcase" : "Showcase"}</span>
           </Button>
+          {!showcase && <VaultDataControls onDeleted={() => {
+            setStoredAssets([]);
+            setFinancials({});
+            setSelectedKey(hasLegacyVault ? ufcCards[0].key : "");
+          }} />}
           {!showcase && <CardScanner onAdded={addStoredAsset} knownCardNames={collection.filter((asset) => asset.category === "card").map((asset) => asset.name)} />}
           {!showcase && <AddAssetDialog onAdded={addStoredAsset} />}
         </div>
@@ -1178,7 +1467,17 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
                 <div className="collection-copy">
                   <strong>{asset.name}</strong>
                   <span>{asset.subtitle}</span>
-                  <div><em>{asset.serial || asset.category.toUpperCase()}</em><b>{formatValue(asset.valueAud)}</b></div>
+                  <div>
+                    <em>{asset.serial || asset.category.toUpperCase()}</em>
+                    <b>{formatValue(asset.valueAud)}</b>
+                  </div>
+                  {(asset.wishlist || asset.showcase) && (
+                    <small className="asset-flags">
+                      {asset.wishlist ? "Wishlist" : ""}
+                      {asset.wishlist && asset.showcase ? " · " : ""}
+                      {asset.showcase ? "Showcase" : ""}
+                    </small>
+                  )}
                 </div>
               </button>
             ))}
@@ -1204,7 +1503,16 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
               <p>{selected.subtitle}</p>
             </div>
             <div className="viewer-heading-actions">
+              {!showcase && collection.length > 0 && selected.storedId && (
+                <EditAssetDialog key={`edit-${selected.key}`} asset={selected} onSaved={saveEditedAsset} />
+              )}
               {!showcase && collection.length > 0 && <PurchaseDialog key={selected.key} asset={selected} onSaved={saveFinancial} />}
+              {!showcase && selected.storedId && (
+                <Button type="button" variant="outline" className="purchase-button delete-asset-button" onClick={() => void deleteSelectedAsset(selected)} aria-label={`Remove ${selected.name}`}>
+                  <Trash2 />
+                  Remove
+                </Button>
+              )}
               {collection.length > 0 && <div className="verified-mark" title={selected.isOwnerPhoto ? "Exact owner asset" : "Saved in your collection"}>
                 <BadgeCheck />
                 {selected.isOwnerPhoto ? "Owner photo" : "In vault"}
@@ -1337,7 +1645,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
         <div><Sparkles /> Cards, bullion and rare collectibles in one vault</div>
         <div className="vault-footer-links">
           <p>Values are estimates, not guaranteed sale prices.</p>
-          <Link href="/privacy">Privacy &amp; affiliates</Link>
+          <Link href="/privacy">Privacy, export &amp; deletion</Link>
         </div>
       </footer>
       <Toaster position="bottom-center" richColors />

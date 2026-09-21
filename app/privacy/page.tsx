@@ -30,7 +30,12 @@ export default function PrivacyPage() {
 
         <section>
           <h2>Access, export and deletion</h2>
-          <p>Secure account access is provided through Sign in with ChatGPT; the vault does not receive your ChatGPT password. There is no in-app export or delete control yet. Information is retained while it is needed to provide the collection service. Contact the vault owner through the channel that shared this site to request a copy of your records or to have them removed.</p>
+          <p>Secure account access is provided through Sign in with ChatGPT; the vault does not receive your ChatGPT password. After you sign in you can download a private copy of your saved records and photos, or permanently delete that data from the vault. Purchase prices are included only in your private export and are never shown on a public page. App-shipped UFC and silver catalog photos remain part of the app and are not removed by account deletion. Collection information is retained while it is needed to provide the service.</p>
+        </section>
+
+        <section>
+          <h2>Catalog photos</h2>
+          <p>Sample UFC and silver photos that ship with the app live under <code>/cards</code> and <code>/metals</code>. Those files are catalog copies, not other users&apos; private scans. The app now requires a signed-in session before serving them, and when a vault owner id is configured they are limited to that owner. Private scans are stored separately and are only readable through an ownership check.</p>
         </section>
 
         <Link className="legal-back" href="/">Back to the vault</Link>
