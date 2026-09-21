@@ -57,6 +57,8 @@ test("worker applies security headers without trusting identity headers", async 
   assert.match(worker, /x-frame-options/);
   assert.match(worker, /strict-transport-security/);
   assert.match(worker, /permissions-policy/);
+  assert.match(worker, /camera=\(self\)/);
+  assert.doesNotMatch(worker, /camera=\(\)/);
   const auth = await read("app/auth.ts");
   assert.match(auth, /Never trust spoofable headers/);
   assert.match(auth, /oai-authenticated-user/);
