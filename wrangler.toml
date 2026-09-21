@@ -1,9 +1,5 @@
 # Cloudflare Workers config for Ari's Card Vault (R1 rehost).
 # Do not put API tokens or OAuth secrets in this file.
-#
-# Before the first production deploy, replace D1 `database_id` with the real
-# id from the dashboard or `npx wrangler d1 list`. HQ may create the
-# `card-vault` database in the dashboard if the API token lacks D1 permission.
 
 name = "card-vault"
 account_id = "f82810c8a9f4145c732dfbc751ce5976"
@@ -24,10 +20,12 @@ binding = "IMAGES"
 [[d1_databases]]
 binding = "DB"
 database_name = "card-vault"
-database_id = "00000000-0000-4000-8000-000000000000"
+database_id = "a85197a6-e0ba-465f-b4f6-b17d8939a5d8"
 migrations_dir = "drizzle"
 
 # App already reads env.BUCKET via lib/storage.ts (scan photos, export, delete).
+# Bucket is not created yet: enable R2 on this account in the dashboard, then
+# `npx wrangler r2 bucket create card-vault`. Keep the binding name.
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "card-vault"

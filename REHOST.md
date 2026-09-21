@@ -13,17 +13,18 @@ ChatGPT Sites injects `oai-authenticated-user-*` headers and owns `/signin-with-
 Account ID (already provisioned): `f82810c8a9f4145c732dfbc751ce5976`
 
 Worker name: `card-vault`  
-D1 database name: `card-vault` (binding `DB`)  
+D1 database name: `card-vault` (binding `DB`, database_id `a85197a6-e0ba-465f-b4f6-b17d8939a5d8`)  
 R2 bucket name: `card-vault` (binding `BUCKET` — required; scan photos already use R2)
 
-If the API token can edit D1/R2:
+D1 `card-vault` exists on this account. The Worker config already points at that id.
+
+R2 is **not** created yet. Enable R2 once in the Cloudflare dashboard for account `f82810c8a9f4145c732dfbc751ce5976`, then create the bucket:
 
 ```bash
-npx wrangler d1 create card-vault
 npx wrangler r2 bucket create card-vault
 ```
 
-Copy the real D1 `database_id` into `wrangler.toml` (replace the placeholder UUID). If the token lacks D1 permission, create `card-vault` in the Cloudflare dashboard and paste the id the same way.
+Leave the `BUCKET` → `card-vault` binding in `wrangler.toml`. Deploying scan/export/delete will fail until that bucket exists.
 
 Do **not** commit API tokens. Use `CLOUDFLARE_API_TOKEN` in the shell or `wrangler login`.
 
@@ -76,7 +77,7 @@ npx wrangler deploy
 
 `wrangler.toml` is the source of truth. `vite.config.ts` lets `@cloudflare/vite-plugin` load it. The ChatGPT Sites vite plugin only runs when `SITES_BUILD=1`.
 
-This PR does not deploy. A successful `wrangler deploy` (after HQ fills `database_id` and secrets) yields a `*.workers.dev` URL. That is R1’s success bar, not a cutover.
+This PR does not deploy. A successful `wrangler deploy` (after Google secrets, R2 enablement + bucket create, and drizzle 0000–0005) yields a `*.workers.dev` URL. That is R1’s success bar, not a cutover.
 
 ## D1 migrations (drizzle 0000–0005)
 

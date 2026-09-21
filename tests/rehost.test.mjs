@@ -12,6 +12,8 @@ test("wrangler.toml names the Worker and binds D1 plus existing R2", async () =>
   assert.match(toml, /account_id\s*=\s*"f82810c8a9f4145c732dfbc751ce5976"/);
   assert.match(toml, /binding\s*=\s*"DB"/);
   assert.match(toml, /database_name\s*=\s*"card-vault"/);
+  assert.match(toml, /database_id\s*=\s*"a85197a6-e0ba-465f-b4f6-b17d8939a5d8"/);
+  assert.doesNotMatch(toml, /00000000-0000-4000-8000-000000000000/);
   assert.match(toml, /binding\s*=\s*"BUCKET"/);
   assert.match(toml, /bucket_name\s*=\s*"card-vault"/);
   assert.doesNotMatch(toml, /GOOGLE_CLIENT_SECRET\s*=/);
@@ -28,6 +30,8 @@ test("REHOST.md documents deploy, secrets, drizzle 0001–0005, and Sites cutove
   assert.match(docs, /0001_lumpy_moira_mactaggert/);
   assert.match(docs, /0005_phase3_valuation_history/);
   assert.match(docs, /Sites stays live/);
+  assert.match(docs, /Enable R2 once in the Cloudflare dashboard/);
+  assert.match(docs, /a85197a6-e0ba-465f-b4f6-b17d8939a5d8/);
   assert.match(docs, /does not claim a production Worker is serving users/i);
   assert.doesNotMatch(docs, /production is live/i);
 });
