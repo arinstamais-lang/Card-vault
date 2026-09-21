@@ -635,7 +635,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #65f7d5; outline-offs
 .scanner-camera-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .scanner-privacy { margin-top: 12px; display: flex; align-items: center; gap: 7px; color: #6f7c76; font-size: 12px; }
 .scanner-privacy svg { width: 14px; color: #65f7d5; }
-.scanner-footer { margin-top: 17px; display: flex; justify-content: space-between; }
+.scanner-footer { margin-top: 17px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
 .scan-review-images { margin: 5px 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .scan-review-images > div { position: relative; height: 150px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 13px; background: #050807; }
 .scan-review-images img { width: 100%; height: 100%; object-fit: contain; }
@@ -829,7 +829,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid #65f7d5; outline-offs
   .purchase-button svg { width: 17px; }
   .scan-card-button { width: 42px; height: 42px; padding: 0; font-size: 0; }
   .scanner-guide { width: min(100%, 260px); }
-  .scanner-footer { flex-direction: row; }
   .scanner-detected { grid-template-columns: auto 1fr; }
   .scanner-detected b { grid-column: 2; justify-self: start; }
   .spot-ribbon { grid-template-columns: 1fr 42px; }

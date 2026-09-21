@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const detectedDetails = [
       year,
       setName,
-      sport && sport !== "Trading card" ? sport : "",
+      sport,
       cardNumber ? `Card ${cardNumber.replace(/^#/, "")}` : "",
       parallel,
     ].filter(Boolean);

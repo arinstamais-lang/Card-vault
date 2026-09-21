@@ -47,7 +47,7 @@ type OcrWorker = {
 
 const EMPTY_DETECTION: CardDetection = {
   name: "",
-  sport: "Trading card",
+  sport: "",
   year: "",
   setName: "",
   cardNumber: "",
