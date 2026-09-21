@@ -1,8 +1,6 @@
-import { desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb } from "../../../db";
-import { assetFinancials } from "../../../db/schema";
+import { collectionErrorMessage, listOwnedFinancials, upsertOwnedFinancial } from "../../../lib/collection";
 import { getVaultIdentity } from "../../vault-auth";
 
 const financialInput = z.object({
@@ -12,11 +10,7 @@ const financialInput = z.object({
 });
 
 function errorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : "Unexpected error";
-  if (message.includes("no such table") || message.includes("asset_financials")) {
-    return "Purchase tracking is still being prepared. Try again after the next publish.";
-  }
-  return "Purchase details could not be saved right now.";
+  return collectionErrorMessage(error, "Purchase details could not be saved right now.");
 }
 
 export async function GET() {
@@ -24,12 +18,7 @@ export async function GET() {
   if (!identity) return Response.json({ error: "Sign in required" }, { status: 401 });
 
   try {
-    const rows = await getDb()
-      .select()
-      .from(assetFinancials)
-      .where(inArray(assetFinancials.ownerId, identity.ownerIds))
-      .orderBy(desc(assetFinancials.updatedAt))
-      .limit(500);
+    const rows = await listOwnedFinancials(identity);
     return Response.json({ financials: rows });
   } catch (error) {
     return Response.json({ error: errorMessage(error) }, { status: 500 });
@@ -49,32 +38,9 @@ export async function PUT(request: Request) {
       );
     }
 
-    const value = parsed.data;
-    const updatedAt = new Date().toISOString();
-    const [existing] = await getDb()
-      .select({ ownerId: assetFinancials.ownerId })
-      .from(assetFinancials)
-      .where(eq(assetFinancials.assetKey, value.assetKey))
-      .limit(1);
-    if (existing && !identity.ownerIds.includes(existing.ownerId)) {
-      return Response.json({ error: "This item belongs to another vault" }, { status: 403 });
-    }
-
-    const [financial] = await getDb()
-      .insert(assetFinancials)
-      .values({ ...value, ownerId: identity.user.id, updatedAt })
-      .onConflictDoUpdate({
-        target: assetFinancials.assetKey,
-        set: {
-          purchasePriceAud: value.purchasePriceAud,
-          purchaseDate: value.purchaseDate,
-          ownerId: identity.user.id,
-          updatedAt,
-        },
-      })
-      .returning();
-
-    return Response.json({ financial });
+    const saved = await upsertOwnedFinancial(identity, parsed.data);
+    if (!saved.ok) return Response.json({ error: saved.error }, { status: saved.status });
+    return Response.json({ financial: saved.financial });
   } catch (error) {
     return Response.json({ error: errorMessage(error) }, { status: 500 });
   }

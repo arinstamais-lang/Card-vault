@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const assets = sqliteTable(
   "assets",
@@ -18,6 +18,8 @@ export const assets = sqliteTable(
     serial: text("serial").notNull().default(""),
     sourceUrl: text("source_url").notNull().default(""),
     scanStatus: text("scan_status").notNull().default(""),
+    wishlist: integer("wishlist").notNull().default(0),
+    showcase: integer("showcase").notNull().default(0),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
@@ -27,12 +29,17 @@ export const assets = sqliteTable(
   ],
 );
 
-export const assetFinancials = sqliteTable("asset_financials", {
-  assetKey: text("asset_key").primaryKey(),
-  ownerId: text("owner_id").notNull().default("legacy-owner"),
-  purchasePriceAud: real("purchase_price_aud"),
-  purchaseDate: text("purchase_date").notNull().default(""),
-  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-}, (table) => [
-  index("idx_asset_financials_owner").on(table.ownerId),
-]);
+export const assetFinancials = sqliteTable(
+  "asset_financials",
+  {
+    ownerId: text("owner_id").notNull().default("legacy-owner"),
+    assetKey: text("asset_key").notNull(),
+    purchasePriceAud: real("purchase_price_aud"),
+    purchaseDate: text("purchase_date").notNull().default(""),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerId, table.assetKey] }),
+    index("idx_asset_financials_owner").on(table.ownerId),
+  ],
+);

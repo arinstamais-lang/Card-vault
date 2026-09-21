@@ -4,6 +4,8 @@ Audited: 2026-09-21
 Live site: https://aris-card-vault.aristama27.chatgpt.site/  
 Scope: ChatGPT Sites export on `main`. **PATCH, do not rebuild.**
 
+**Phase 2 (export, delete, edit, financial PK, seed-photo gate):** see `PHASE2.md`. Do not treat the export/delete gaps below as current once that PR is merged.
+
 ## REAL vs DEMO vs BROKEN
 
 ### REAL

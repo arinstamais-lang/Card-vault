@@ -36,6 +36,8 @@ export type ScannerAsset = {
   sourceUrl: string;
   scanStatus: string;
   createdAt: string;
+  wishlist?: boolean;
+  showcase?: boolean;
 };
 
 type Side = "front" | "back";
