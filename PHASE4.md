@@ -19,7 +19,7 @@ Rule: **PATCH**. Auth, scanner confirmation, export/delete, and valuation eviden
 
 ## Install on iPhone (Safari)
 
-1. Open the **hosted** vault URL in **Safari** (not ChatGPT’s in-app browser, not Chrome on iOS for Add to Home Screen reliability).
+1. Open **https://card-vault.ariscardvault.workers.dev** in **Safari** (not an in-app browser, not Chrome on iOS for Add to Home Screen reliability).
 2. Tap **Share** (square with an arrow).
 3. Scroll to **Add to Home Screen** → **Add**.
 4. Open **Ari's Vault** from the Home Screen. It runs standalone.
@@ -31,7 +31,7 @@ Android Chrome may show **Install app** after the service worker is registered. 
 
 | Item | Status |
 | --- | --- |
-| **ChatGPT Sites deploy** | This snapshot cannot publish https://aris-card-vault.aristama27.chatgpt.site/. Icons, SW, and manifest only appear on the live host after a Sites deploy Ari controls. |
+| **Workers deploy** | This snapshot cannot publish https://card-vault.ariscardvault.workers.dev by itself. HQ runs `wrangler deploy`. ChatGPT Sites is the old host; see `CUTOVER.md`. |
 | **Apple Developer account** | Required for App Store Connect, certificates, and TestFlight. Not in this repo. |
 | **TestFlight upload** | **Not done.** There is no native iOS target (no Xcode project, no Capacitor). Do not claim a build was uploaded. |
 | **Native wrapper** | Out of scope unless a thin Capacitor shell is added later. If added, reuse `APP_STORE_PREP.md` usage strings and privacy answers. |

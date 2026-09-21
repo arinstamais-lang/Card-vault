@@ -1,6 +1,8 @@
 # Ari's Card Vault — Bot Handover
 
-Live site: https://aris-card-vault.aristama27.chatgpt.site/
+Live site: https://card-vault.ariscardvault.workers.dev  
+Sign-in: GitHub OAuth. Callback: `https://card-vault.ariscardvault.workers.dev/auth/github/callback`  
+Cutover: [`CUTOVER.md`](./CUTOVER.md)
 
 ## Product goal
 
@@ -12,7 +14,7 @@ Build a mobile-first collector app that lets users scan trading cards, confirm t
 - Current collection data and front/back pairings
 - Authentication and per-user data separation
 - Light/dark presentation and mobile layout
-- Current live site while changes are developed and tested
+- Current live Worker while changes are developed and tested
 
 ## Current implementation areas
 
@@ -48,9 +50,9 @@ Never invent uncertain fields. Flag them for review.
 - Use deterministic code for accounts, permissions, calculations, filters and storage.
 - Use AI only for image reading, uncertain matching and useful valuation research.
 - Avoid duplicate agents, searches, builds, tests and deployments.
-- Test the changed flows once as a batch, then deploy one stable version.
+- Test the changed flows once as a batch, then open a PR. HQ deploys with `wrangler deploy`.
 - Security and data protection take priority over saving usage.
 
 ## Important limitation
 
-This ZIP is a source snapshot. It does not contain deployment credentials or hosted secrets. Do not claim the live ChatGPT Site has been changed unless the relevant hosting access is connected and a deployment is verified.
+This repository does not contain deployment credentials or hosted secrets. Do not claim the live Worker has been changed unless `wrangler deploy` ran with credentials in that session.

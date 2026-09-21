@@ -987,6 +987,7 @@ function VaultDataControls({
   onDeleted: () => void;
 }) {
   const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -1008,6 +1009,7 @@ function VaultDataControls({
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      setExportOpen(false);
       toast.success("Private export downloaded");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not export the vault");
@@ -1040,7 +1042,7 @@ function VaultDataControls({
 
   return (
     <>
-      <Button type="button" variant="outline" className="header-tool vault-data-button" onClick={() => void downloadExport()} disabled={exporting} aria-label="Export collection">
+      <Button type="button" variant="outline" className="header-tool vault-data-button" onClick={() => setExportOpen(true)} disabled={exporting} aria-label="Export collection">
         {exporting ? <RefreshCw className="spin" /> : <Download />}
         <span>{exporting ? "Exporting…" : "Export"}</span>
       </Button>
@@ -1048,6 +1050,25 @@ function VaultDataControls({
         <Trash2 />
         <span>Delete</span>
       </Button>
+      <AlertDialog open={exportOpen} onOpenChange={(next) => {
+        if (!exporting) setExportOpen(next);
+      }}>
+        <AlertDialogContent className="asset-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Download a private export?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ZIP includes your saved records, scans and purchase prices for this GitHub account. App-shipped catalog photos are not included. Keep the file somewhere private.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button type="button" variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>Cancel</Button>
+            <Button type="button" className="save-asset-button" onClick={() => void downloadExport()} disabled={exporting} aria-label="Confirm private export download">
+              {exporting ? <RefreshCw className="spin" /> : <Download />}
+              {exporting ? "Exporting…" : "Download ZIP"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={deleteOpen} onOpenChange={(next) => {
         setDeleteOpen(next);
         if (!next) setConfirmText("");
@@ -1104,6 +1125,25 @@ const emptyAsset: CollectionAsset = {
   sourceUrl: "",
 };
 
+function EmptyVaultFirstRun({ onScan }: { onScan: () => void }) {
+  return (
+    <div className="empty-vault-viewer">
+      <div><ScanLine aria-hidden="true" /></div>
+      <h3>Your vault is empty</h3>
+      <p>This signed-in collection starts blank — no sample cards and no demo prices. Scan a real card, or add a metal or collectible from the header.</p>
+      <ol className="empty-vault-tips">
+        <li>Photograph the front and back in good light.</li>
+        <li>Check the draft. Blank fields were not read; we do not invent names.</li>
+        <li>Save into your private vault. Asking prices stay separate from sold evidence.</li>
+      </ol>
+      <Button type="button" className="empty-vault-cta scan-card-button" onClick={onScan} aria-label="Scan your first card">
+        <ScanLine aria-hidden="true" /> Scan your first card
+      </Button>
+      <span>Use Add asset in the header for bullion and other items without a scan.</span>
+    </div>
+  );
+}
+
 export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps) {
   const [storedAssets, setStoredAssets] = useState<StoredAsset[]>([]);
   const [financials, setFinancials] = useState<Record<string, AssetFinancial>>({});
@@ -1114,6 +1154,9 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
   const [priceError, setPriceError] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showcase, setShowcase] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<CollectionAsset | null>(null);
+  const [deletingItem, setDeletingItem] = useState(false);
   const [spots, setSpots] = useState<Record<"gold" | "silver", SpotPrice | null>>({
     gold: null,
     silver: null,
@@ -1322,8 +1365,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
 
   async function deleteSelectedAsset(asset: CollectionAsset) {
     if (!asset.storedId) return;
-    const confirmed = window.confirm(`Remove ${asset.name} from your vault? Private photos and purchase details for this item will be deleted.`);
-    if (!confirmed) return;
+    setDeletingItem(true);
     try {
       const response = await fetch("/api/assets", {
         method: "DELETE",
@@ -1333,9 +1375,12 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error || "Could not delete this item");
       removeStoredAsset(asset.storedId);
-      toast.success(`${asset.name} removed`);
+      setPendingDelete(null);
+      toast.success(`${asset.name} removed from your vault`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not delete this item");
+    } finally {
+      setDeletingItem(false);
     }
   }
 
@@ -1368,7 +1413,13 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
             setValuations([]);
             setSelectedKey(hasLegacyVault ? ufcCards[0].key : "");
           }} />}
-          {!showcase && <CardScanner onAdded={addStoredAsset} knownCardNames={collection.filter((asset) => asset.category === "card").map((asset) => asset.name)} />}
+          <CardScanner
+            open={scanOpen}
+            onOpenChange={setScanOpen}
+            showTrigger={!showcase}
+            onAdded={addStoredAsset}
+            knownCardNames={collection.filter((asset) => asset.category === "card").map((asset) => asset.name)}
+          />
           {!showcase && <AddAssetDialog onAdded={addStoredAsset} />}
         </div>
       </header>
@@ -1414,7 +1465,13 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
       <section className="portfolio-strip" aria-label="Portfolio summary">
         <div className="portfolio-title">
           <span>COLLECTION VALUE</span>
-          <div className="portfolio-value">{currencyWhole.format(portfolioValue)}</div>
+          <div className="portfolio-value">
+            {loadingAssets && collection.length === 0
+              ? "Opening…"
+              : collection.length === 0
+                ? "No collection yet"
+                : currencyWhole.format(portfolioValue)}
+          </div>
           <div className="portfolio-mix">
             <span>{cards} cards</span><i />
             <span>{metals} metals</span><i />
@@ -1423,7 +1480,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
         </div>
         <div className="summary-stats">
           <div className="stat-block"><span>Cards</span><strong>{String(cards).padStart(2, "0")}</strong><small>{hasLegacyVault ? "UFC collection" : "Saved cards"}</small></div>
-          <div className="stat-block"><span>Top piece</span><strong>{highestValueAsset ? formatValue(highestValueAsset.valueAud) : "—"}</strong><small>{highestValueAsset?.name || "Collection"}</small></div>
+          <div className="stat-block"><span>Top piece</span><strong>{highestValueAsset ? formatValue(highestValueAsset.valueAud) : "—"}</strong><small>{highestValueAsset?.name || (collection.length === 0 ? "Scan to start" : "Collection")}</small></div>
           <div className="stat-block"><span>Assets</span><strong>{String(collection.length).padStart(2, "0")}</strong><small>Highest value first</small></div>
         </div>
       </section>
@@ -1446,7 +1503,13 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           </Tabs>
 
           <div className="asset-list" id="collection-assets">
-            {loadingAssets && <Skeleton className="asset-row-skeleton" />}
+            {loadingAssets && (
+              <>
+                <Skeleton className="asset-row-skeleton" />
+                <Skeleton className="asset-row-skeleton" />
+                <Skeleton className="asset-row-skeleton" />
+              </>
+            )}
             {visibleAssets.map((asset) => (
               <button
                 key={asset.key}
@@ -1488,14 +1551,31 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
                 </div>
               </button>
             ))}
-            {!loadingAssets && visibleAssets.length === 0 && (
+            {!loadingAssets && visibleAssets.length === 0 && collection.length === 0 && (
+              <div className="empty-filter empty-filter-first-run">
+                <ScanLine aria-hidden="true" />
+                <strong>No cards saved yet</strong>
+                <span>Scan front and back, confirm the draft, then it appears here. No sample prices.</span>
+                <Button type="button" className="empty-vault-cta scan-card-button" onClick={() => setScanOpen(true)} aria-label="Scan a card into an empty vault">
+                  Scan card
+                </Button>
+              </div>
+            )}
+            {!loadingAssets && visibleAssets.length === 0 && collection.length > 0 && (
               <div className="empty-filter"><Gem /><strong>No assets here yet</strong><span>Add one to start tracking it.</span></div>
             )}
           </div>
 
           <div className="research-card">
             <SearchCheck />
-            <div><strong>Exact owner copies</strong><span>Every photographed asset is matched, enhanced and kept tied to its real markings.</span></div>
+            <div>
+              <strong>{collection.length === 0 ? "Start with a scan" : "Exact owner copies"}</strong>
+              <span>
+                {collection.length === 0
+                  ? "Front and back photos stay private. Confirm the draft before anything is saved."
+                  : "Every photographed asset is matched, enhanced and kept tied to its real markings."}
+              </span>
+            </div>
           </div>
         </aside>
 
@@ -1515,7 +1595,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
               )}
               {!showcase && collection.length > 0 && <PurchaseDialog key={selected.key} asset={selected} onSaved={saveFinancial} />}
               {!showcase && selected.storedId && (
-                <Button type="button" variant="outline" className="purchase-button delete-asset-button" onClick={() => void deleteSelectedAsset(selected)} aria-label={`Remove ${selected.name}`}>
+                <Button type="button" variant="outline" className="purchase-button delete-asset-button" onClick={() => setPendingDelete(selected)} aria-label={`Remove ${selected.name}`}>
                   <Trash2 />
                   Remove
                 </Button>
@@ -1526,13 +1606,14 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
               </div>}
             </div>
           </div>
-          {collection.length === 0 ? (
-            <div className="empty-vault-viewer">
-              <div><ScanLine /></div>
-              <h3>Your vault is ready</h3>
-              <p>Use <strong>Scan card</strong> for front-and-back recognition, or <strong>Add asset</strong> for metals and collectibles.</p>
-              <span>Your first saved item will appear here.</span>
+          {loadingAssets && collection.length === 0 ? (
+            <div className="empty-vault-viewer is-loading" aria-busy="true">
+              <Skeleton className="empty-vault-skeleton" />
+              <h3>Opening your vault…</h3>
+              <p>Checking for saved cards on this GitHub account.</p>
             </div>
+          ) : collection.length === 0 ? (
+            <EmptyVaultFirstRun onScan={() => setScanOpen(true)} />
           ) : selected.isOwnerPhoto && selected.front && selected.back ? <InteractiveCard key={selected.key} card={selected} /> : <AssetShowcase asset={selected} spot={selectedSpot} />}
           {collection.length > 0 && <div className={`viewer-bottom-line ${showcase ? "showcase-values" : ""}`}>
             <div><span>Current value</span><strong>{formatValue(selected.valueAud)}</strong></div>
@@ -1550,11 +1631,14 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           <div className="value-card">
             <span>{collection.length === 0 ? "PRIVATE COLLECTION" : selected.isOwnerPhoto && selected.category === "silver" ? "Estimated collector value" : selected.category === "card" ? "Collection figure" : "Estimated market value"}</span>
             <strong>{collection.length === 0 ? "No assets yet" : formatValue(selected.valueAud)}</strong>
-            <p>{collection.length === 0 ? "Only you can see the items saved to this account." : selected.scanStatus === "pending_research" ? selected.description || "Newly scanned card" : selected.rangeAud ? `${selected.description} · stored notes ${selected.rangeAud}` : selected.description || "Saved tangible asset"}</p>
+            <p>{collection.length === 0 ? "No sample catalog or demo prices on a new account. Values appear after you save an item." : selected.scanStatus === "pending_research" ? selected.description || "Newly scanned card" : selected.rangeAud ? `${selected.description} · stored notes ${selected.rangeAud}` : selected.description || "Saved tangible asset"}</p>
           </div>
 
           {collection.length === 0 ? (
-            <div className="empty-vault-intel"><ShieldCheck /><div><strong>Private by default</strong><span>Scans, photos and collection details are checked against your signed-in account.</span></div></div>
+            <>
+              <div className="empty-vault-intel"><ScanLine /><div><strong>Scan, then confirm</strong><span>Front and back photos become a draft. Unread fields stay blank. We never invent athlete names or sold prices.</span></div></div>
+              <div className="empty-vault-intel"><ShieldCheck /><div><strong>Asking stays separate from sold</strong><span>eBay active listings are asking prices. Sold searches are completed sales. Affiliate tracking stays off without a campaign ID.</span></div></div>
+            </>
           ) : selected.isOwnerPhoto && selected.category === "silver" ? (
             <>
               <div className="metal-price-grid">
@@ -1628,6 +1712,30 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           <Link href="/privacy">Privacy, export &amp; deletion</Link>
         </div>
       </footer>
+      <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(next) => {
+        if (!next && !deletingItem) setPendingDelete(null);
+      }}>
+        <AlertDialogContent className="asset-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {pendingDelete?.name || "this item"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes the saved record, private photos and purchase details for this item. It cannot be undone unless you still have an export.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPendingDelete(null)} disabled={deletingItem}>Cancel</Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => pendingDelete && void deleteSelectedAsset(pendingDelete)}
+              disabled={deletingItem || !pendingDelete}
+              aria-label="Confirm remove from vault"
+            >
+              {deletingItem ? "Removing…" : "Remove from vault"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Toaster position="bottom-center" richColors />
     </main>
   );

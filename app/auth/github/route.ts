@@ -11,7 +11,7 @@ import {
   OAUTH_COOKIE,
   OAUTH_MAX_AGE_SEC,
   randomBase64Url,
-  requestIsHttps,
+  cookieShouldBeSecure,
   safeRelativeReturnPath,
   serializeCookie,
   signOAuthPending,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       "cache-control": "private, no-store",
       "set-cookie": serializeCookie(OAUTH_COOKIE, pending, {
         maxAge: OAUTH_MAX_AGE_SEC,
-        secure: requestIsHttps(request),
+        secure: cookieShouldBeSecure(request),
       }),
     },
   });

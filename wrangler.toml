@@ -6,6 +6,7 @@ account_id = "f82810c8a9f4145c732dfbc751ce5976"
 main = "./worker/index.ts"
 compatibility_date = "2026-02-12"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
 
 # Static files + vinext client assets. Binding name matches worker/index.ts.
 [assets]

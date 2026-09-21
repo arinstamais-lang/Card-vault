@@ -1,62 +1,53 @@
-# vinext-starter
+# Ari’s Card Vault
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with Cloudflare D1, R2, and Drizzle support.
+Private collector app for trading cards, metals and rare assets. Scan front and back, confirm a draft, keep a signed-in vault, and separate asking prices from sold evidence.
 
-**Rehost (Cloudflare Workers):** see [`REHOST.md`](./REHOST.md) for `wrangler.toml`, GitHub sign-in secrets, D1 migrations, and cutover notes. ChatGPT Sites remains live until that cutover; this tree no longer trusts Sites identity headers.
+**Live:** https://card-vault.ariscardvault.workers.dev  
+**Sign-in:** GitHub OAuth (not Google, not ChatGPT). Callback: `https://card-vault.ariscardvault.workers.dev/auth/github/callback`  
+**Host:** Cloudflare Workers + D1 + R2 (`wrangler.toml`). Ops: [`REHOST.md`](./REHOST.md). Cutover: [`CUTOVER.md`](./CUTOVER.md).
+
+This tree does not auto-deploy. HQ runs `wrangler deploy` after merge. Do not put secrets in git.
+
+## Product rules
+
+- Identity is the HMAC `vault_session` cookie from GitHub OAuth. Do not trust `oai-authenticated-user-*` or other spoofable identity headers.
+- Scanner results are drafts. Confirm before save. Unread fields stay blank; never invent athlete names or sold prices.
+- Asking listings and sold evidence stay labelled separately. eBay affiliate tags stay off unless both campaign and marketplace IDs are set.
+- A new GitHub account starts with an empty vault (no sample catalog prices) unless `VAULT_LEGACY_OWNER_ID` matches that account.
 
 ## Prerequisites
 
 - Node.js `>=22.13.0`
-- Linux with `flock`, `curl`, and GNU `timeout`
+- Linux with `flock`, `curl`, and GNU `timeout` for `install:ci` / `build` helpers
 
-## Sites Lifecycle
+## Included shape
 
-The Sites lifecycle CLI runs the locked dependency install before returning this checkout. Edit the source under `app/`, then checkpoint when a coherent milestone is ready to inspect or share. The remote Sites builder runs `npm run build` against the pushed commit. Do not repeat install or build as a normal pre-checkpoint step.
+- Site code under `app/`
+- `app/auth.ts` — GitHub sign-in helpers (session cookie)
+- `app/vault-auth.ts` — maps the signed-in user onto per-vault `ownerIds`
+- `wrangler.toml` — Worker `card-vault`, `workers_dev = true`, D1 `card-vault` (`a85197a6-e0ba-465f-b4f6-b17d8939a5d8`), R2 `card-vault`
+- Photos to preserve: `public/cards/` and `public/metals/`
+- Optional ChatGPT Sites packaging only when `SITES_BUILD=1` (legacy). Default builds use Workers.
 
-This app uses `wrangler.toml` for Workers + D1 + R2. ChatGPT Sites packaging is opt-in (`SITES_BUILD=1`).
-
-`install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
-
-Scripts that need writable project-scoped home, npm, XDG, and temporary paths use `scripts/sites-env.sh`. The `dev` and `start` scripts honor the caller's runtime environment and keep Wrangler logs inside the checkout. The generated `.sites-runtime/` directory is disposable and ignored by Git.
-
-## Included Shape
-
-- edit site code under `app/`
-- `app/auth.ts` provides GitHub OAuth sign-in helpers (session cookie)
-- `app/vault-auth.ts` maps the signed-in user onto per-vault `ownerIds`
-- `wrangler.toml` declares D1 (`DB` → `card-vault`) and R2 (`BUCKET` → `card-vault`)
-- `vite.config.ts` uses that Wrangler config for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `.openai/hosting.json` remains for an optional Sites rebuild only
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## GitHub Sign-In
-
-Identity is a signed `vault_session` cookie from GitHub OAuth. Helpers live in `app/auth.ts`:
+## GitHub sign-in
 
 - `getUser()` / `requireUser(returnTo)` for server-rendered pages
-- `<a href={signInPath(returnTo)} target="_top">` to start sign-in (top-level navigation)
+- `<a href={signInPath(returnTo)} target="_top">` to start sign-in
 - `signOutPath(returnTo)` for the header sign-out link
 
-Do not trust `oai-authenticated-user-*` headers on the Worker. Until `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and `SESSION_SECRET` are set, `/auth/github` returns 503 and does not create a session. Setup is in [`REHOST.md`](./REHOST.md).
+Until `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and `SESSION_SECRET` are set, `/auth/github` returns 503 and does not create a session. Setup is in [`REHOST.md`](./REHOST.md).
 
-## Diagnostic Commands
+## Commands
 
-- `npm run install:ci`: perform the one bounded lockfile install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Vinext Worker
-- `npm run start`: start the built Vinext application
+- `npm run install:ci`: bounded lockfile install
+- `npm run dev`: Vite/Vinext development server
+- `npm run build`: deployable Vinext Worker
+- `npm run start`: start the built app
 - `npm test`: build and run Node tests
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-- `npm run cf:deploy`: build and `wrangler deploy` (requires Cloudflare credentials and a real D1 id)
+- `npm run db:migrate:local` / `db:migrate:remote`: drizzle 0000–0005
+- `npm run cf:deploy`: build and `wrangler deploy` (Cloudflare credentials required)
 
-Use build commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
+## Learn more
 
-The timeout defaults can be overridden for a controlled canary with `SITES_INSTALL_TIMEOUT`, `SITES_INSTALL_KILL_AFTER`, `SITES_BUILD_TIMEOUT`, and `SITES_BUILD_KILL_AFTER`. A timeout fails the command; the helpers never retry an unchanged install or build.
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+- [vinext](https://github.com/cloudflare/vinext)
+- [Drizzle D1](https://orm.drizzle.team/docs/get-started/d1-new)

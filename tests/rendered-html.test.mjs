@@ -34,4 +34,7 @@ test("renders the signed-out GitHub landing page", async () => {
   assert.match(html, /Skip to sign in/);
   assert.doesNotMatch(html, /Continue with ChatGPT/);
   assert.doesNotMatch(html, /Sign in with Google/);
+  assert.match(response.headers.get("x-content-type-options") ?? "", /nosniff/i);
+  assert.match(response.headers.get("referrer-policy") ?? "", /strict-origin-when-cross-origin/i);
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
 });

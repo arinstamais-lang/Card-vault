@@ -1,12 +1,12 @@
 import { AUTH_RESERVED_PATHS } from "../../../lib/github-oauth";
-import { clearCookie, OAUTH_COOKIE, requestIsHttps, safeRelativeReturnPath, SESSION_COOKIE } from "../../../lib/session";
+import { clearCookie, cookieShouldBeSecure, OAUTH_COOKIE, safeRelativeReturnPath, SESSION_COOKIE } from "../../../lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const returnTo = safeRelativeReturnPath(requestUrl.searchParams.get("return_to") || "/", AUTH_RESERVED_PATHS);
-  const secure = requestIsHttps(request);
+  const secure = cookieShouldBeSecure(request);
   const headers = new Headers({
     location: returnTo,
     "cache-control": "private, no-store",

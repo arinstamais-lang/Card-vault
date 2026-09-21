@@ -109,3 +109,21 @@ test("GitHub email picker prefers verified primary then noreply fallback", () =>
   );
   assert.equal(oauth.pickGitHubEmail("", [], "1+ari@users.noreply.github.com"), "1+ari@users.noreply.github.com");
 });
+
+test("session cookies are Secure on workers.dev and never trust forwarded proto", () => {
+  const local = new Request("http://localhost/auth/github");
+  const spoofedLocal = new Request("http://localhost/auth/github", { headers: { "x-forwarded-proto": "https" } });
+  const workers = new Request("https://card-vault.ariscardvault.workers.dev/auth/github");
+  assert.equal(session.cookieShouldBeSecure(local), false);
+  assert.equal(session.cookieShouldBeSecure(spoofedLocal), false);
+  assert.equal(session.cookieShouldBeSecure(workers), true);
+  assert.equal(session.requestIsHttps(spoofedLocal), false);
+  assert.match(
+    session.serializeCookie("vault_session", "token", { maxAge: 60, secure: session.cookieShouldBeSecure(workers) }),
+    /Secure/,
+  );
+  assert.doesNotMatch(
+    session.serializeCookie("vault_session", "token", { maxAge: 60, secure: session.cookieShouldBeSecure(local) }),
+    /Secure/,
+  );
+});

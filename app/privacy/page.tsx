@@ -50,7 +50,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2>Installable app (PWA)</h2>
-          <p>You can add the vault to an iPhone Home Screen from Safari (Share → Add to Home Screen). That is a Progressive Web App, not an App Store listing. A service worker may cache icons and an offline message; it does not cache your private collection APIs or scanned photos.</p>
+          <p>You can add the vault to an iPhone Home Screen from Safari on <code>https://card-vault.ariscardvault.workers.dev</code> (Share → Add to Home Screen). That is a Progressive Web App on Cloudflare Workers, not an App Store listing or ChatGPT Site. A service worker may cache icons and an offline message; it does not cache your private collection APIs or scanned photos.</p>
         </section>
 
         <Link className="legal-back" href="/">Back to the vault</Link>

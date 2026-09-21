@@ -12,7 +12,7 @@ import {
   githubOwnerId,
   OAUTH_COOKIE,
   readOAuthPending,
-  requestIsHttps,
+  cookieShouldBeSecure,
   serializeCookie,
   SESSION_COOKIE,
   SESSION_MAX_AGE_SEC,
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   const state = requestUrl.searchParams.get("state") || "";
   const secret = trimSetting(runtime.SESSION_SECRET);
   const pending = await readOAuthPending(request.headers.get("cookie"), secret);
-  const secure = requestIsHttps(request);
+  const secure = cookieShouldBeSecure(request);
   const clearOauth = clearCookie(OAUTH_COOKIE, secure);
 
   if (!code || !state || !pending || pending.nonce !== state) {

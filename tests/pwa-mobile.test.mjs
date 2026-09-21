@@ -61,7 +61,11 @@ test("scanner keeps rear-camera capture and a library picker for iPhone Safari",
   assert.ok(withoutCapture.some((match) => /type=["']file["']/.test(match[0])));
   assert.doesNotMatch(scanner, /pointer-events:\s*none/);
   assert.match(scanner, /On iPhone Safari/);
+  assert.match(scanner, /Choose from library/);
+  assert.match(scanner, /Camera blocked or missing/);
   assert.match(scanner, /Preview of the card \$\{side\}/);
+  assert.match(scanner, /Confirm and add/);
+  assert.match(scanner, /detectionDraftCopy/);
 });
 
 test("landing, vault, and scanner keep accessible names on key controls", async () => {
@@ -69,8 +73,11 @@ test("landing, vault, and scanner keep accessible names on key controls", async 
   assert.match(landing, /Skip to sign in/);
   assert.match(landing, /Install on iPhone/);
   assert.match(landing, /Add to Home Screen/);
+  assert.match(landing, /card-vault\.ariscardvault\.workers\.dev/);
   assert.match(landing, /Sign in with GitHub/);
   assert.match(landing, /aria-hidden="true"/);
+  assert.doesNotMatch(landing, /chatgpt\.site/);
+  assert.doesNotMatch(landing, /Sign in with Google/);
 
   const vault = await read("app/card-vault.tsx");
   assert.match(vault, /Skip to collection/);

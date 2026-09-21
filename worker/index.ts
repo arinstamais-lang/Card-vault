@@ -27,6 +27,30 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-frame-options": "DENY",
+  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+  "cross-origin-opener-policy": "same-origin",
+};
+
+function applySecurityHeaders(response: Response, request: Request) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    if (!headers.has(name)) headers.set(name, value);
+  }
+  const hostname = new URL(request.url).hostname;
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function jsonError(message: string, status: number) {
   return Response.json({ error: message }, {
     status,
@@ -47,47 +71,52 @@ async function photoAccessFor(pathname: string, request: Request, env: Env) {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    const photoAccess = await photoAccessFor(url.pathname, request, env);
-    if (photoAccess === "unauthorized") return jsonError("Sign in required", 401);
-    if (photoAccess === "not_found") return jsonError("Image not found", 404);
-
-    if (url.pathname === "/sw.js" || url.pathname === "/manifest.webmanifest") {
-      const response = await handler.fetch(request, env, ctx);
-      const headers = new Headers(response.headers);
-      if (url.pathname === "/sw.js") {
-        headers.set("content-type", "application/javascript; charset=utf-8");
-        headers.set("service-worker-allowed", "/");
-        headers.set("cache-control", "no-cache");
-      } else {
-        headers.set("content-type", "application/manifest+json; charset=utf-8");
-        headers.set("cache-control", "no-cache");
-      }
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
-      });
-    }
-
-    if (url.pathname === "/_vinext/image") {
-      const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      return handleImageOptimization(request, {
-        fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
-        transformImage: async (body, { width, format, quality }) => {
-          const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
-          return result.response();
-        },
-      }, allowedWidths);
-    }
-
-    const response = await handler.fetch(request, env, ctx);
-    if (photoAccess !== "allow") return response;
-
-    const headers = new Headers(response.headers);
-    headers.set("cache-control", "private, max-age=86400");
-    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    const response = await routeRequest(request, env, ctx);
+    return applySecurityHeaders(response, request);
   },
 };
+
+async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  const photoAccess = await photoAccessFor(url.pathname, request, env);
+  if (photoAccess === "unauthorized") return jsonError("Sign in required", 401);
+  if (photoAccess === "not_found") return jsonError("Image not found", 404);
+
+  if (url.pathname === "/sw.js" || url.pathname === "/manifest.webmanifest") {
+    const response = await handler.fetch(request, env, ctx);
+    const headers = new Headers(response.headers);
+    if (url.pathname === "/sw.js") {
+      headers.set("content-type", "application/javascript; charset=utf-8");
+      headers.set("service-worker-allowed", "/");
+      headers.set("cache-control", "no-cache");
+    } else {
+      headers.set("content-type", "application/manifest+json; charset=utf-8");
+      headers.set("cache-control", "no-cache");
+    }
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  if (url.pathname === "/_vinext/image") {
+    const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
+    return handleImageOptimization(request, {
+      fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
+      transformImage: async (body, { width, format, quality }) => {
+        const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+        return result.response();
+      },
+    }, allowedWidths);
+  }
+
+  const response = await handler.fetch(request, env, ctx);
+  if (photoAccess !== "allow") return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("cache-control", "private, max-age=86400");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 export default worker;

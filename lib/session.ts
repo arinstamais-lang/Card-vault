@@ -80,9 +80,14 @@ export function clearCookie(name: string, secure: boolean) {
 }
 
 export function requestIsHttps(request: Request) {
-  const url = new URL(request.url);
-  const forwarded = request.headers.get("x-forwarded-proto");
-  return url.protocol === "https:" || forwarded === "https";
+  return new URL(request.url).protocol === "https:";
+}
+
+/** Session cookies are Secure on real hosts. Do not trust spoofable forwarded proto. */
+export function cookieShouldBeSecure(request: Request) {
+  const hostname = new URL(request.url).hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") return false;
+  return true;
 }
 
 function base64UrlEncode(bytes: Uint8Array) {

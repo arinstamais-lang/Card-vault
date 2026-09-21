@@ -137,9 +137,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .brand-lockup p { margin: 0; color: #77837e; font-size: 12px; font-weight: 800; letter-spacing: 0.28em; }
 .brand-lockup h1 { margin: 1px 0 0; font-size: 17px; letter-spacing: 0.13em; font-weight: 800; }
 .header-actions { display: flex; align-items: center; gap: 12px; }
-.header-tool { height: 42px; border-radius: 12px; }
+.header-tool { min-height: 44px; height: 44px; border-radius: 12px; }
 .header-tool svg { width: 18px; }
-.account-chip { min-width: 0; height: 42px; padding: 4px 5px 4px 6px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 13px; background: rgba(255, 255, 255, 0.035); }
+.account-chip { min-width: 0; min-height: 44px; height: 44px; padding: 4px 5px 4px 6px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 13px; background: rgba(255, 255, 255, 0.035); }
 .account-chip > span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #65f7d5; background: rgba(101, 247, 213, 0.09); }
 .account-chip > span svg { width: 16px; }
 .account-chip > div { min-width: 0; max-width: 145px; }
@@ -149,7 +149,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .account-chip > a { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #7d8b85; }
 .account-chip > a:hover { color: #f4f8f6; background: rgba(255, 255, 255, 0.06); }
 .account-chip > a svg { width: 15px; }
-.theme-toggle { width: 42px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.1); color: #c6d2dd; background: rgba(255, 255, 255, 0.035); }
+.theme-toggle { width: 44px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.1); color: #c6d2dd; background: rgba(255, 255, 255, 0.035); }
 .theme-toggle:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
 .showcase-toggle { gap: 8px; padding-inline: 14px; border-color: rgba(94, 234, 212, 0.22); color: #bffbf1; background: rgba(94, 234, 212, 0.055); font-weight: 750; }
 .showcase-toggle:hover { border-color: rgba(94, 234, 212, 0.38); color: #effffc; background: rgba(94, 234, 212, 0.1); }
@@ -199,7 +199,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .market-stamp svg { width: 16px; }
 .market-stamp.is-error { color: #d6b76a; }
 .add-asset-button, .save-asset-button {
-  height: 42px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 17px;
   border-radius: 12px;
   background: #65f7d5;
@@ -209,7 +210,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 }
 .add-asset-button:hover, .save-asset-button:hover { background: #8affdf; }
 .scan-card-button {
-  height: 42px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 16px;
   border-radius: 12px;
   background: #65f7d5;
@@ -598,7 +600,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .vault-footer a { color: #7f918a; text-decoration: underline; text-underline-offset: 3px; }
 .vault-footer a:hover { color: #bfffee; }
 
-.login-page { position: relative; min-height: 100svh; overflow: hidden; padding: env(safe-area-inset-top) max(28px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(28px, env(safe-area-inset-left)); color: #142036; background: #f5f8fc; }
+.login-page { position: relative; min-height: 100svh; overflow: hidden; padding: max(20px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(28px, env(safe-area-inset-left)); color: #142036; background: #f5f8fc; }
 .login-page::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.28; background-image: linear-gradient(rgba(18, 32, 54, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(18, 32, 54, 0.035) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(to bottom, #000, transparent 72%); }
 .login-glow { position: absolute; border-radius: 999px; filter: blur(110px); pointer-events: none; }
 .login-glow-one { width: 480px; height: 480px; left: -190px; top: 10%; background: rgba(22, 200, 167, 0.18); }
@@ -648,19 +650,26 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .install-iphone li, .install-iphone p { color: #3e4c63; font-size: 14px; line-height: 1.5; }
 .install-iphone p { margin: 0; }
 .scanner-dialog { width: min(620px, calc(100vw - 24px)); max-width: 620px; max-height: min(880px, calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
-.empty-vault-viewer { min-height: 475px; padding: 38px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.empty-vault-viewer { min-height: 475px; padding: 38px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .empty-vault-viewer > div { width: 70px; height: 70px; display: grid; place-items: center; border: 1px solid rgba(101, 247, 213, 0.18); border-radius: 21px; color: #65f7d5; background: rgba(101, 247, 213, 0.055); }
 .empty-vault-viewer svg { width: 30px; }
 .empty-vault-viewer h3 { margin: 20px 0 8px; font-size: 24px; letter-spacing: -0.03em; }
 .empty-vault-viewer p { max-width: 410px; margin: 0; color: #7f8c87; font-size: 14px; line-height: 1.6; }
 .empty-vault-viewer span { margin-top: 12px; color: #61706a; font-size: 11px; }
+.empty-vault-tips { max-width: 390px; margin: 16px 0 0; padding-left: 1.2rem; text-align: left; color: #8b9691; font-size: 13px; line-height: 1.55; }
+.empty-vault-tips li { margin: 0 0 6px; }
+.empty-vault-cta { margin-top: 18px; }
+.empty-vault-skeleton { width: min(220px, 70%); height: 160px; border-radius: 18px; }
+.empty-filter-first-run { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 16px; text-align: center; }
+.empty-filter-first-run svg { width: 22px; color: #65f7d5; }
+.empty-filter-first-run .empty-vault-cta { margin-top: 8px; }
 .empty-vault-intel { margin: 13px; padding: 15px; display: flex; align-items: flex-start; gap: 11px; border: 1px solid rgba(101, 247, 213, 0.14); border-radius: 13px; background: rgba(101, 247, 213, 0.045); }
 .empty-vault-intel > svg { flex: 0 0 auto; width: 18px; color: #65f7d5; }
 .empty-vault-intel strong, .empty-vault-intel span { display: block; }
 .empty-vault-intel strong { font-size: 13px; }
 .empty-vault-intel span { margin-top: 4px; color: #798680; font-size: 12px; line-height: 1.5; }
 
-.legal-page { min-height: 100svh; padding: 28px 16px; display: grid; place-items: center; background: radial-gradient(circle at 50% 0%, rgba(101, 247, 213, 0.08), transparent 34%), #070b12; color: #eef5f2; }
+.legal-page { min-height: 100svh; padding: max(28px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); display: grid; place-items: center; background: radial-gradient(circle at 50% 0%, rgba(101, 247, 213, 0.08), transparent 34%), #070b12; color: #eef5f2; }
 .legal-card { width: min(720px, 100%); padding: clamp(24px, 5vw, 52px); border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 22px; background: rgba(10, 15, 20, 0.94); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35); }
 .legal-kicker { margin: 0 0 12px; color: #65f7d5; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; }
 .legal-card h1 { margin: 0; font-size: clamp(30px, 6vw, 48px); line-height: 1.04; letter-spacing: -0.035em; }
@@ -708,7 +717,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 .scanner-camera-button, .scanner-library-button {
   position: relative;
   overflow: hidden;
-  min-height: 44px;
+  min-height: 48px;
   padding: 0 17px;
   display: inline-flex;
   align-items: center;
@@ -757,6 +766,16 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
   line-height: 1.45;
   text-align: center;
 }
+.scanner-library-hint { margin-top: 6px; }
+.scanner-confirm-note {
+  margin: 0 0 14px;
+  color: #8b9691;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+.scanner-analysis.is-error { gap: 4px; }
+.scanner-analysis.is-error .scanner-footer { width: 100%; margin-top: 18px; }
 .scanner-privacy { margin-top: 12px; display: flex; align-items: center; gap: 7px; color: #8b9691; font-size: 12px; }
 .scanner-privacy svg { width: 14px; color: #65f7d5; }
 .scanner-footer { margin-top: 17px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
@@ -891,10 +910,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
 :root[data-theme="light"] .scanner-detected b { background: rgba(15, 159, 139, 0.08); }
 :root[data-theme="light"] .scanner-detected.is-warning { border-color: rgba(173, 126, 19, 0.2); background: #fff9e9; }
 :root[data-theme="light"] .empty-vault-viewer > div, :root[data-theme="light"] .empty-vault-intel { border-color: rgba(15, 159, 139, 0.18); color: #087565; background: #edf9f6; }
-:root[data-theme="light"] .empty-vault-viewer p, :root[data-theme="light"] .empty-vault-viewer span, :root[data-theme="light"] .empty-vault-intel span { color: #4d5b70; }
+:root[data-theme="light"] .empty-vault-viewer p, :root[data-theme="light"] .empty-vault-viewer span, :root[data-theme="light"] .empty-vault-intel span, :root[data-theme="light"] .empty-vault-tips { color: #4d5b70; }
 :root[data-theme="light"] .scanner-library-button { border-color: rgba(22, 32, 51, 0.14); color: #243247; background: #f1f5f9; }
 :root[data-theme="light"] .scanner-library-button:hover { background: #fff; }
-:root[data-theme="light"] .scanner-iphone-hint, :root[data-theme="light"] .scanner-privacy { color: #3e4c63; }
+:root[data-theme="light"] .scanner-iphone-hint, :root[data-theme="light"] .scanner-privacy, :root[data-theme="light"] .scanner-confirm-note { color: #3e4c63; }
 
 @media (max-width: 1200px) {
   .vault-workspace { grid-template-columns: minmax(270px, 0.75fr) minmax(500px, 1.55fr); }
@@ -953,9 +972,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
   .global-search-input { height: 40px; padding-inline: 10px; font-size: 16px; }
   .global-search-button { width: 42px; height: 40px; padding: 0; }
   .global-search-button span { display: none; }
-  .add-asset-button { width: 42px; padding: 0; font-size: 0; }
+  .add-asset-button { width: 44px; padding: 0; font-size: 0; }
   .add-asset-button svg { width: 18px; }
-  .showcase-toggle { width: 42px; padding: 0; }
+  .showcase-toggle { width: 44px; padding: 0; }
   .showcase-toggle span { display: none; }
   .showcase-notice span { display: none; }
   .portfolio-value { font-size: 39px; }
@@ -966,9 +985,15 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
   .stat-block strong { font-size: 18px; }
   .purchase-button { width: 38px; padding: 0; font-size: 0; }
   .purchase-button svg { width: 17px; }
-  .vault-data-button, .vault-delete-button { width: 42px; padding: 0; }
+  .vault-data-button, .vault-delete-button { width: 44px; padding: 0; }
   .vault-data-button span, .vault-delete-button span { display: none; }
-  .scan-card-button { width: 42px; height: 42px; padding: 0; font-size: 0; }
+  .scan-card-button { width: 44px; height: 44px; padding: 0; font-size: 0; }
+  .empty-vault-cta.scan-card-button {
+    width: auto;
+    min-width: 44px;
+    padding: 0 16px;
+    font-size: 16px;
+  }
   .scanner-guide { width: min(100%, 260px); }
   .scanner-detected { grid-template-columns: auto 1fr; }
   .scanner-detected b { grid-column: 2; justify-self: start; }
@@ -994,7 +1019,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .skip-link:focus {
   .viewer-bottom-line strong { font-size: 11px; }
   .form-grid { grid-template-columns: 1fr; }
   .field.full-field { grid-column: auto; }
-  .login-page { padding: env(safe-area-inset-top) max(17px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(17px, env(safe-area-inset-left)); }
+  .login-page { padding: max(16px, env(safe-area-inset-top)) max(17px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(17px, env(safe-area-inset-left)); }
   .login-nav { min-height: 72px; }
   .login-shell { min-height: auto; padding: 50px 0 65px; grid-template-columns: 1fr; gap: 40px; }
   .login-copy h1 { font-size: 44px; }

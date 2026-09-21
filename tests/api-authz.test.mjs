@@ -100,9 +100,13 @@ test("ChatGPT Sites identity headers do not authenticate on Workers", async () =
     headers: {
       "oai-authenticated-user-id": "spoof",
       "oai-authenticated-user-email": "spoof@example.com",
+      "cf-access-authenticated-user-email": "spoof@example.com",
+      "x-goog-authenticated-user-id": "spoof",
     },
   });
   assert.equal(response.status, 401);
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
 });
 
 test("public landing page still loads without sign-in", async () => {

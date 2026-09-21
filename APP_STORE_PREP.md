@@ -1,6 +1,6 @@
 # App Store / TestFlight preparation (not an upload)
 
-**Status:** documentation only. This repository is a ChatGPT Sites / Vite web app (PWA). There is **no** Capacitor, Cordova, or Xcode project, so **nothing can be uploaded to TestFlight from this PR**. Ari must create an Apple Developer account and, if a native wrapper is added later, archive and upload that binary with those credentials.
+**Status:** documentation only. This repository is a Cloudflare Workers / vinext web app (PWA). There is **no** Capacitor, Cordova, or Xcode project, so **nothing can be uploaded to TestFlight from this PR**. Ari must create an Apple Developer account and, if a native wrapper is added later, archive and upload that binary with those credentials.
 
 Do **not** claim TestFlight, App Review, or an App Store listing exists until those steps are actually completed.
 
@@ -50,9 +50,9 @@ Paste as-is or lightly edit. Keep them accurate: the app uses camera and photos 
 
 ### Associated domains / ATS
 
-- Load the hosted HTTPS origin only.
+- Load the hosted HTTPS origin only (`https://card-vault.ariscardvault.workers.dev` until a custom domain exists).
 - Do not disable App Transport Security.
-- If using Universal Links later, add `applinks:` for the Sites hostname after DNS is stable.
+- If using Universal Links later, add `applinks:` for the Workers (or custom) hostname after DNS is stable.
 
 ## App privacy nutrition-label answers (draft)
 
@@ -62,9 +62,9 @@ Use App Store Connect → App Privacy. Answers below match **this web app’s cu
 
 | Data type (Apple label) | Collected? | Linked to identity? | Used for tracking? | Notes |
 | --- | --- | --- | --- | --- |
-| Email address | Yes (via Sign in with ChatGPT identity headers) | Yes | No | Used to operate the signed-in vault. Password is never received. |
-| Name | Optional (ChatGPT profile name if present) | Yes | No | Display in the header. |
-| User ID | Yes (ChatGPT user id) | Yes | No | Ownership key for D1/R2 records. |
+| Email address | Yes (via GitHub OAuth, stored in the session cookie) | Yes | No | Used to operate the signed-in vault. GitHub password is never received. |
+| Name | Optional (GitHub profile name if present) | Yes | No | Display in the header. |
+| User ID | Yes (`github:<id>`) | Yes | No | Ownership key for D1/R2 records. |
 | Photos or videos | Yes, user-provided card scans | Yes | No | Front/back images the user confirms. On-device OCR first. Stored privately (R2) for that account. |
 | Product interaction | No first-party analytics SDK | — | No | Hosting platform logs may exist outside this repo. |
 | Purchase history | Optional purchase price/date the user types | Yes | No | Private cost/return only; included in private export; hidden in showcase mode. |
@@ -87,8 +87,8 @@ Use App Store Connect → App Privacy. Answers below match **this web app’s cu
 
 **Third-party partners to list if asked:**
 
-- OpenAI / ChatGPT Sites (sign-in, hosting).
-- Cloudflare (D1, R2, Worker) as declared in hosting config.
+- GitHub (OAuth sign-in).
+- Cloudflare (Worker, D1, R2) as declared in `wrangler.toml`.
 - eBay (user-initiated search; eBay’s policy applies off-site).
 - Public metal spot feed (`api.gold-api.com`) fetched in the browser when signed in.
 
@@ -99,11 +99,11 @@ Use App Store Connect → App Privacy. Answers below match **this web app’s cu
 
 ### Retention / deletion (store listing copy draft)
 
-> Saved cards, scans and purchase notes stay in your account until you export or delete them. You can download a private copy or type DELETE MY VAULT to wipe saved vault data. App-shipped catalog photos are not your private scans. Sign-in is through ChatGPT; we never receive your ChatGPT password.
+> Saved cards, scans and purchase notes stay in your account until you export or delete them. You can download a private copy or type DELETE MY VAULT to wipe saved vault data. App-shipped catalog photos are not your private scans. Sign-in is through GitHub; we never receive your GitHub password.
 
 ## App Review notes draft (for a future wrapper)
 
-- Demo account: ChatGPT sign-in is required; provide a reviewer account or a video if Apple cannot complete SIWC.
+- Demo account: GitHub sign-in is required; provide a reviewer account or a video if Apple cannot complete OAuth.
 - Camera: used only on Scan card → front and back; user confirms details before save.
 - No user-generated public social feed.
 - Asking prices and sold evidence are labelled separately; the app does not invent sold comps.
@@ -112,4 +112,4 @@ Use App Store Connect → App Privacy. Answers below match **this web app’s cu
 
 - Inventing sold prices.
 - Uploading a binary without Apple credentials.
-- Claiming the ChatGPT Site already received these PWA files until Sites deploy is connected.
+- Claiming workers.dev already received these PWA files until HQ ran `wrangler deploy` for this commit.
