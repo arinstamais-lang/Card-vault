@@ -48,6 +48,24 @@ const worker = {
     if (photoAccess === "unauthorized") return jsonError("Sign in required", 401);
     if (photoAccess === "not_found") return jsonError("Image not found", 404);
 
+    if (url.pathname === "/sw.js" || url.pathname === "/manifest.webmanifest") {
+      const response = await handler.fetch(request, env, ctx);
+      const headers = new Headers(response.headers);
+      if (url.pathname === "/sw.js") {
+        headers.set("content-type", "application/javascript; charset=utf-8");
+        headers.set("service-worker-allowed", "/");
+        headers.set("cache-control", "no-cache");
+      } else {
+        headers.set("content-type", "application/manifest+json; charset=utf-8");
+        headers.set("cache-control", "no-cache");
+      }
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
+
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {

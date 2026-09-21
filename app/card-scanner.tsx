@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Camera, Check, RefreshCw, ScanLine, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -158,6 +158,41 @@ async function recogniseBestOrientation(
   return `${best}\n${detailResult.data.text}`;
 }
 
+const SCAN_ACCEPT = "image/*,image/jpeg,image/png,image/webp,image/heic,image/heif";
+const MAX_SCAN_BYTES = 8 * 1024 * 1024;
+const PREPARE_BYTES = 2.5 * 1024 * 1024;
+const PREPARE_MAX_SIDE = 2000;
+
+async function prepareScanPhoto(file: File): Promise<File> {
+  const heic = /heic|heif/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+  if (file.size <= PREPARE_BYTES && !heic) return file;
+  if (typeof createImageBitmap !== "function") return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, PREPARE_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close();
+      return file;
+    }
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    canvas.width = 1;
+    canvas.height = 1;
+    if (!blob || blob.size === 0) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg", lastModified: Date.now() });
+  } catch {
+    return file;
+  }
+}
+
 function CaptureStep({
   side,
   file,
@@ -169,25 +204,48 @@ function CaptureStep({
   preview: string;
   onChoose: (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
+  const cameraLabel = file ? `Retake ${side} with camera` : `Take ${side} photo`;
+  const libraryLabel = file ? `Choose a different ${side} photo` : `Choose ${side} from library`;
+
   return (
     <div className="scanner-stage">
       <div className="scanner-guide">
         {preview ? (
-          <img src={preview} alt={`${side} preview`} />
+          <img src={preview} alt={`Preview of the card ${side}`} />
         ) : (
           <div className="scanner-empty">
-            <ScanLine />
+            <ScanLine aria-hidden="true" />
             <strong>Photograph the {side}</strong>
             <span>Fill the frame · avoid glare · keep every edge visible</span>
           </div>
         )}
       </div>
-      <label className="scanner-camera-button">
-        <Camera />
-        {file ? `Retake ${side}` : `Take ${side} photo`}
-        <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" onChange={onChoose} />
-      </label>
-      <div className="scanner-privacy"><ShieldCheck /> Your photos stay inside your private vault.</div>
+      <div className="scanner-capture-actions">
+        <label className="scanner-camera-button">
+          <Camera aria-hidden="true" />
+          {cameraLabel}
+          <input
+            type="file"
+            accept={SCAN_ACCEPT}
+            capture="environment"
+            aria-label={cameraLabel}
+            onChange={onChoose}
+          />
+        </label>
+        <label className="scanner-library-button">
+          {libraryLabel}
+          <input
+            type="file"
+            accept={SCAN_ACCEPT}
+            aria-label={libraryLabel}
+            onChange={onChoose}
+          />
+        </label>
+      </div>
+      <p className="scanner-iphone-hint">
+        On iPhone Safari, the first tap asks for Camera or Photos access. Allow it, then keep the card in the frame. If the camera does not open, use Choose from library.
+      </p>
+      <div className="scanner-privacy"><ShieldCheck aria-hidden="true" /> Your photos stay inside your private vault.</div>
     </div>
   );
 }
@@ -204,10 +262,14 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisLabel, setAnalysisLabel] = useState("Preparing card reader…");
   const [analysisError, setAnalysisError] = useState("");
+  const frontPreviewRef = useRef("");
+  const backPreviewRef = useRef("");
 
   function reset() {
-    if (frontPreview) URL.revokeObjectURL(frontPreview);
-    if (backPreview) URL.revokeObjectURL(backPreview);
+    if (frontPreviewRef.current) URL.revokeObjectURL(frontPreviewRef.current);
+    if (backPreviewRef.current) URL.revokeObjectURL(backPreviewRef.current);
+    frontPreviewRef.current = "";
+    backPreviewRef.current = "";
     setStep("front");
     setFront(null);
     setBack(null);
@@ -279,23 +341,34 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
 
   function choose(side: Side) {
     return (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
+      const input = event.target;
+      const file = input.files?.[0];
+      input.value = "";
       if (!file) return;
-      if (file.size > 8 * 1024 * 1024) {
+      if (file.size > MAX_SCAN_BYTES) {
         toast.error("That photo is over 8 MB. Try taking it again a little closer.");
-        event.target.value = "";
         return;
       }
-      const preview = URL.createObjectURL(file);
-      if (side === "front") {
-        if (frontPreview) URL.revokeObjectURL(frontPreview);
-        setFront(file);
-        setFrontPreview(preview);
-      } else {
-        if (backPreview) URL.revokeObjectURL(backPreview);
-        setBack(file);
-        setBackPreview(preview);
-      }
+
+      void (async () => {
+        const prepared = await prepareScanPhoto(file);
+        if (prepared.size > MAX_SCAN_BYTES) {
+          toast.error("That photo is still over 8 MB after shrinking. Try a closer shot.");
+          return;
+        }
+        const preview = URL.createObjectURL(prepared);
+        if (side === "front") {
+          if (frontPreviewRef.current) URL.revokeObjectURL(frontPreviewRef.current);
+          frontPreviewRef.current = preview;
+          setFront(prepared);
+          setFrontPreview(preview);
+        } else {
+          if (backPreviewRef.current) URL.revokeObjectURL(backPreviewRef.current);
+          backPreviewRef.current = preview;
+          setBack(prepared);
+          setBackPreview(preview);
+        }
+      })();
     };
   }
 
@@ -326,7 +399,7 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
-        <Button className="scan-card-button"><ScanLine /> Scan card</Button>
+        <Button className="scan-card-button" aria-label="Scan card"><ScanLine aria-hidden="true" /> Scan card</Button>
       </DialogTrigger>
       <DialogContent className="asset-dialog scanner-dialog">
         <DialogHeader>
@@ -355,8 +428,8 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
         {step === "details" && (
           <form className="asset-form scanner-form" onSubmit={submit}>
             <div className="scan-review-images">
-              <div><img src={frontPreview} alt="Card front" /><span>Front</span></div>
-              <div><img src={backPreview} alt="Card back" /><span>Back</span></div>
+              <div><img src={frontPreview} alt="Captured card front" /><span>Front</span></div>
+              <div><img src={backPreview} alt="Captured card back" /><span>Back</span></div>
             </div>
             <div className={`scanner-detected ${analysisError ? "is-warning" : ""}`}>
               <Sparkles />
@@ -424,8 +497,9 @@ export function CardScanner({ onAdded, knownCardNames = [] }: { onAdded: (asset:
               className="save-asset-button"
               disabled={step === "front" ? !front : !back}
               onClick={() => step === "front" ? setStep("back") : void analyseCard()}
+              aria-label={step === "front" ? "Continue to back photo" : "Identify card from both photos"}
             >
-              {step === "front" ? "Continue" : "Identify card"} <ArrowRight />
+              {step === "front" ? "Continue" : "Identify card"} <ArrowRight aria-hidden="true" />
             </Button>
           </DialogFooter>
         )}

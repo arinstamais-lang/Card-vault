@@ -43,6 +43,16 @@ export default function PrivacyPage() {
           <p>Sample UFC and silver photos that ship with the app live under <code>/cards</code> and <code>/metals</code>. Those files are catalog copies, not other users&apos; private scans. The app now requires a signed-in session before serving them, and when a vault owner id is configured they are limited to that owner. Private scans are stored separately and are only readable through an ownership check.</p>
         </section>
 
+        <section>
+          <h2>Camera and photos on your device</h2>
+          <p>Scanning a card uses the camera or photo library on your phone or computer. Card text recognition runs on your device before you review and save. The vault only stores the front and back images you confirm. Safari on iPhone will ask for Camera or Photos permission the first time you scan. Those photos are linked to your signed-in account and are not used for advertising.</p>
+        </section>
+
+        <section>
+          <h2>Installable app (PWA)</h2>
+          <p>You can add the vault to an iPhone Home Screen from Safari (Share → Add to Home Screen). That is a Progressive Web App, not an App Store listing. A service worker may cache icons and an offline message; it does not cache your private collection APIs or scanned photos.</p>
+        </section>
+
         <Link className="legal-back" href="/">Back to the vault</Link>
       </article>
     </main>

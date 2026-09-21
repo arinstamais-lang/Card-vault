@@ -545,12 +545,12 @@ function InteractiveCard({ card }: { card: CollectionAsset }) {
         <div className="card-shadow" />
         <div className="card-model" style={style}>
           <div className="card-face card-front">
-            <img src={card.front || ""} alt={`${card.name} card front`} draggable={false} />
+            <img src={card.front || ""} alt={`${card.name} card front`} draggable={false} decoding="async" fetchPriority="high" />
             <div className="foil-layer" aria-hidden="true" />
             <div className="sleeve-glint" aria-hidden="true" />
           </div>
           <div className="card-face card-back">
-            <img src={card.back || ""} alt={`${card.name} card back`} draggable={false} />
+            <img src={card.back || ""} alt={`${card.name} card back`} draggable={false} decoding="async" />
             <div className="sleeve-glint back-glint" aria-hidden="true" />
           </div>
           <div className="card-edge edge-top" />
@@ -610,7 +610,7 @@ function AssetShowcase({ asset, spot }: { asset: CollectionAsset; spot: SpotPric
     <div className="generic-showcase">
       <div className="generic-object">
         {asset.imageUrl ? (
-          <img src={asset.imageUrl} alt={asset.name} />
+          <img src={asset.imageUrl} alt={asset.name} decoding="async" />
         ) : (
           <div className="generic-placeholder">
             <CategoryIcon category={asset.category} />
@@ -677,7 +677,7 @@ function AddAssetDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="add-asset-button"><Plus /> Add asset</Button>
+        <Button className="add-asset-button" aria-label="Add asset"><Plus aria-hidden="true" /> Add asset</Button>
       </DialogTrigger>
       <DialogContent className="asset-dialog">
         <DialogHeader>
@@ -808,7 +808,7 @@ function PurchaseDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" className="purchase-button">
+        <Button type="button" variant="outline" className="purchase-button" aria-label={asset.purchasePriceAud === null || asset.purchasePriceAud === undefined ? `Add purchase cost for ${asset.name}` : `Edit purchase cost for ${asset.name}`}>
           {asset.purchasePriceAud === null || asset.purchasePriceAud === undefined ? <WalletCards /> : <Pencil />}
           {asset.purchasePriceAud === null || asset.purchasePriceAud === undefined ? "Add cost" : "Edit cost"}
         </Button>
@@ -916,7 +916,7 @@ function EditAssetDialog({
       }
     }}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" className="purchase-button edit-asset-button">
+        <Button type="button" variant="outline" className="purchase-button edit-asset-button" aria-label={`Edit ${asset.name}`}>
           <Pencil />
           Edit
         </Button>
@@ -1340,9 +1340,10 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
   }
 
   return (
-    <main className={`vault-page ${showcase ? "is-showcase" : ""}`}>
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
+    <main className={`vault-page ${showcase ? "is-showcase" : ""}`} id="main-content">
+      <a className="skip-link" href="#collection-assets">Skip to collection</a>
+      <div className="ambient ambient-one" aria-hidden="true" />
+      <div className="ambient ambient-two" aria-hidden="true" />
 
       <header className="vault-header">
         <div className="brand-lockup">
@@ -1358,7 +1359,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
           <Button type="button" variant="ghost" className="header-tool theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
             {theme === "light" ? <Moon /> : <Sun />}
           </Button>
-          <Button type="button" variant={showcase ? "default" : "outline"} className="header-tool showcase-toggle" onClick={() => setShowcase((current) => !current)}>
+          <Button type="button" variant={showcase ? "default" : "outline"} className="header-tool showcase-toggle" onClick={() => setShowcase((current) => !current)} aria-pressed={showcase} aria-label={showcase ? "Exit showcase mode" : "Enter showcase mode"}>
             {showcase ? <EyeOff /> : <Eye />}<span>{showcase ? "Exit showcase" : "Showcase"}</span>
           </Button>
           {!showcase && <VaultDataControls onDeleted={() => {
@@ -1397,7 +1398,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
             <option value="active">Active listings (asking prices)</option>
             <option value="sold">Sold listings (completed sales)</option>
           </select>
-          <Button className="global-search-button" type="submit">
+          <Button className="global-search-button" type="submit" aria-label="Search eBay Australia">
             <span>Search eBay</span>
             <ExternalLink />
           </Button>
@@ -1444,7 +1445,7 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
             </TabsList>
           </Tabs>
 
-          <div className="asset-list">
+          <div className="asset-list" id="collection-assets">
             {loadingAssets && <Skeleton className="asset-row-skeleton" />}
             {visibleAssets.map((asset) => (
               <button
@@ -1453,10 +1454,22 @@ export function CardVault({ user, hasLegacyVault, signOutPath }: CardVaultProps)
                 type="button"
                 onClick={() => setSelectedKey(asset.key)}
                 aria-current={selected.key === asset.key ? "true" : undefined}
+                aria-label={`${asset.name}${asset.subtitle ? `, ${asset.subtitle}` : ""}`}
               >
                 <div className="collection-thumb">
-                  {asset.imageUrl ? <img src={asset.imageUrl} alt="" /> : <CategoryIcon category={asset.category} />}
-                  {asset.category === "card" && <span className="mini-shine" />}
+                  {asset.imageUrl ? (
+                    <img
+                      src={asset.imageUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      width={67}
+                      height={58}
+                    />
+                  ) : (
+                    <CategoryIcon category={asset.category} />
+                  )}
+                  {asset.category === "card" && <span className="mini-shine" aria-hidden="true" />}
                 </div>
                 <div className="collection-copy">
                   <strong>{asset.name}</strong>
